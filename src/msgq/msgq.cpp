@@ -12,7 +12,7 @@ message_queue::message_queue(key_t key)
     : Channel(ChannelType::MessageQueue)
     , msgid(-1)
 {
-    msgid = msgget(key, IPC_CREAT);
+    msgid = msgget(key, IPC_CREAT | 0666);
     if (msgid == -1) {
         perror("msgget fail");
         exit(1);
