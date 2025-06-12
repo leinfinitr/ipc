@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 
-project(ipc)
+project(ipc VERSION 1.0.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_FLAGS_RELEASE   "$ENV{CFLAGS}   -O3 -DRELEASE_MODE")
@@ -9,5 +9,18 @@ set(CMAKE_C_FLAGS_DEBUG     "$ENV{CFLAGS}   -O0 -g2 -ggdb -DDEBUG_MODE")
 set(CMAKE_CXX_FLAGS_DEBUG   "$ENV{CXXFLAGS} -O0 -g2 -ggdb -DDEBUG_MODE")
 
 set(LIBIPC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
+set(LIBIPC_PROJECT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_subdirectory(src)
+
+if (BUILD_TEST)
+    set(GOOGLETEST_VERSION 1.17.0)
+    add_subdirectory(3rdparty/gtest EXCLUDE_FROM_ALL)
+    add_subdirectory(test)
+endif()
+
+install (
+    DIRECTORY ${LIBIPC_INCLUDE_DIR}/
+    DESTINATION include
+    FILES_MATCHING PATTERN "*.h"
+)
