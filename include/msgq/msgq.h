@@ -3,9 +3,13 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "ipc.h"
+
+using namespace ipc;
+
 namespace msgq {
 
-class message_queue {
+class message_queue : public Channel {
 public:
     message_queue(key_t key);
     ~message_queue();
