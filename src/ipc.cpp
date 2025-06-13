@@ -15,7 +15,7 @@ node::node(std::string name, ChannelType type)
     size_t hash = hasher(name_);
     key_t key = static_cast<key_t>(hash & 0xFFFFFFFF);
     if (key == IPC_PRIVATE) {
-        perror("Generated key is IPC_PRIVATE, which is invalid for message queues");
+        perror("Generated key is IPC_PRIVATE, which is invalid");
         exit(EXIT_FAILURE);
     }
 

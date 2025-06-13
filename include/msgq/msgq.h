@@ -14,10 +14,11 @@ public:
     message_queue(key_t key);
     ~message_queue();
 
-    void send(const void* data, std::size_t size);
-    void receive(void* data, std::size_t size);
+    void send(const void* data, std::size_t size) override;
+    void receive(void* data, std::size_t size) override;
 
 private:
     int msgid;
+    bool create_flag = true;
 };
 } // namespace msgq

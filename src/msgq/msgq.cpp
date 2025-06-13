@@ -3,6 +3,7 @@
 #include <sys/ipc.h>
 #include <sys/msg.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 #include "msgq.h"
 
@@ -12,17 +13,26 @@ message_queue::message_queue(key_t key)
     : Channel(ChannelType::MessageQueue)
     , msgid(-1)
 {
-    msgid = msgget(key, IPC_CREAT | 0666);
+    msgid = msgget(key, IPC_EXCL | IPC_CREAT | 0666);
     if (msgid == -1) {
-        perror("msgget fail");
-        exit(1);
+        msgid = msgget(key, IPC_CREAT | 0666);
+        if (msgid == -1) {
+            perror("msgget fail");
+            exit(EXIT_FAILURE);
+        }
+        create_flag = false;
     }
 }
 
 message_queue::~message_queue()
 {
-    if (msgctl(msgid, IPC_RMID, nullptr) == -1) {
-        perror("msgctl fail");
+    if (create_flag) {
+        if (msgctl(msgid, IPC_RMID, nullptr) == -1) {
+            perror("msgctl fail");
+        }
+    } else {
+        // If the queue was not created by this instance, we do not remove it.
+        // This is to avoid removing a queue that might be used by other processes.
     }
 }
 

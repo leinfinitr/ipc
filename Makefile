@@ -11,7 +11,8 @@ BUILD_PATH			= ${WORK_PATH}/build
 INSTALL_PATH		= ${WORK_PATH}/output
 
 .PHONY: build
-build: clean ${BUILD_PATH}/CMakeCache.txt
+build: ${BUILD_PATH}/CMakeCache.txt
+	rm -rf ${INSTALL_PATH}; \
 	cmake --build ${BUILD_PATH} --target install -- -j$(shell nproc)
 
 ${BUILD_PATH}/CMakeCache.txt:
