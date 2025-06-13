@@ -17,16 +17,20 @@ void test_basic()
     if (pid == -1) {
         perror("fork fail");
         exit(1);
-    } else if (pid == 0) {
+    } else if (pid != 0) {
         ipc::node node("basic");
         std::vector<char> buffer(msg_size);
         node.receive(buffer.data(), msg_size);
 
         EXPECT_EQ(strcmp(buffer.data(), msg), 0) << "Received message: " << buffer.data();
     } else {
+        testing::GTEST_FLAG(output) = "";
+        testing::GTEST_FLAG(print_time) = false;
+
         ipc::node node("basic");
         node.send(msg, msg_size);
-        waitpid(0, nullptr, 0);
+
+        exit(0);
     }
 }
 
@@ -38,7 +42,7 @@ void test_loop()
     if (pid == -1) {
         perror("fork fail");
         exit(1);
-    } else if (pid == 0) {
+    } else if (pid != 0) {
         ipc::node node("loop");
         std::vector<char> buffer(256);
 
@@ -48,12 +52,16 @@ void test_loop()
             EXPECT_EQ(strcmp(buffer.data(), expected_msg.c_str()), 0) << "Received message: " << buffer.data();
         }
     } else {
+        testing::GTEST_FLAG(output) = "";
+        testing::GTEST_FLAG(print_time) = false;
+
         ipc::node node("loop");
         for (int i = 0; i < 10; ++i) {
             std::string full_msg = std::string(base_msg) + " - Message #" + std::to_string(i + 1);
             node.send(full_msg.c_str(), full_msg.size() + 1);
         }
-        waitpid(0, nullptr, 0);
+
+        exit(0);
     }
 }
 
@@ -80,7 +88,7 @@ void test_struct()
     if (pid == -1) {
         perror("fork fail");
         exit(1);
-    } else if (pid == 0) {
+    } else if (pid != 0) {
         ipc::node node("struct");
         std::vector<char> buffer(sizeof(msg));
         node.receive(buffer.data(), sizeof(msg));
@@ -92,9 +100,13 @@ void test_struct()
         EXPECT_EQ(received_msg->mtype, msg.mtype);
         EXPECT_STREQ(received_msg->mtext, msg.mtext);
     } else {
+        testing::GTEST_FLAG(output) = "";
+        testing::GTEST_FLAG(print_time) = false;
+
         ipc::node node("struct");
         node.send(&msg, sizeof(msg));
-        waitpid(0, nullptr, 0);
+
+        exit(0);
     }
 }
 
