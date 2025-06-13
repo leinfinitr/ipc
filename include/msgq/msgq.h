@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <sys/msg.h>
 
 #include "ipc.h"
 
@@ -14,11 +15,18 @@ public:
     message_queue(key_t key);
     ~message_queue();
 
-    void send(const void* data, std::size_t size) override;
-    void receive(void* data, std::size_t size) override;
+    bool send(const void* data) override;
+    std::shared_ptr<void> receive() override;
 
 private:
     int msgid;
+    msglen_t max_msg_size = 0;
     bool create_flag = true;
+
+    struct msg {
+        long mtype = 0;
+        size_t size;
+        char data[];
+    };
 };
 } // namespace msgq

@@ -37,21 +37,23 @@ node::~node()
     delete channel_;
 }
 
-void node::send(void const* data, std::size_t size)
+bool node::send(void const* data)
 {
     if (channel_) {
-        channel_->send(data, size);
+        return channel_->send(data);
     } else {
         fprintf(stderr, "Channel not initialized.\n");
+        return false;
     }
 }
 
-void node::receive(void* data, std::size_t size)
+std::shared_ptr<void> node::receive()
 {
     if (channel_) {
-        channel_->receive(data, size);
+        return channel_->receive();
     } else {
         fprintf(stderr, "Channel not initialized.\n");
+        return nullptr;
     }
 }
 

@@ -11,7 +11,6 @@ using namespace ipc;
 void test_basic()
 {
     const char* msg = "Hello, IPC!";
-    size_t msg_size = strlen(msg) + 1; // +1 for null terminator
 
     pid_t pid = fork();
     if (pid == -1) {
@@ -19,16 +18,19 @@ void test_basic()
         exit(1);
     } else if (pid != 0) {
         ipc::node node("basic");
-        std::vector<char> buffer(msg_size);
-        node.receive(buffer.data(), msg_size);
-
-        EXPECT_EQ(strcmp(buffer.data(), msg), 0) << "Received message: " << buffer.data();
+        auto rec = node.receive();
+        if (!rec) {
+            fprintf(stderr, "Failed to receive message\n");
+            exit(1);
+        }
+        std::vector<char> res(static_cast<char*>(rec.get()), static_cast<char*>(rec.get()) + strlen(static_cast<char*>(rec.get())) + 1);
+        EXPECT_STREQ(res.data(), msg);
     } else {
         testing::GTEST_FLAG(output) = "";
         testing::GTEST_FLAG(print_time) = false;
 
         ipc::node node("basic");
-        node.send(msg, msg_size);
+        EXPECT_TRUE(node.send(msg));
 
         exit(0);
     }
@@ -44,21 +46,25 @@ void test_loop()
         exit(1);
     } else if (pid != 0) {
         ipc::node node("loop");
-        std::vector<char> buffer(256);
-
-        for (int i = 0; i < 10; ++i) {
-            node.receive(buffer.data(), buffer.size());
+        std::shared_ptr<void> rec = nullptr;
+        for (int i = 0; i < 20; ++i) {
+            rec = node.receive();
+            if (!rec) {
+                fprintf(stderr, "Failed to receive message\n");
+                exit(1);
+            }
+            std::vector<char> buffer(static_cast<char*>(rec.get()), static_cast<char*>(rec.get()) + strlen(static_cast<char*>(rec.get())) + 1);
             std::string expected_msg = std::string(base_msg) + " - Message #" + std::to_string(i + 1);
-            EXPECT_EQ(strcmp(buffer.data(), expected_msg.c_str()), 0) << "Received message: " << buffer.data();
+            EXPECT_STREQ(buffer.data(), expected_msg.c_str());
         }
     } else {
         testing::GTEST_FLAG(output) = "";
         testing::GTEST_FLAG(print_time) = false;
 
         ipc::node node("loop");
-        for (int i = 0; i < 10; ++i) {
+        for (int i = 0; i < 20; ++i) {
             std::string full_msg = std::string(base_msg) + " - Message #" + std::to_string(i + 1);
-            node.send(full_msg.c_str(), full_msg.size() + 1);
+            EXPECT_TRUE(node.send(full_msg.c_str()));
         }
 
         exit(0);
@@ -90,10 +96,12 @@ void test_struct()
         exit(1);
     } else if (pid != 0) {
         ipc::node node("struct");
-        std::vector<char> buffer(sizeof(msg));
-        node.receive(buffer.data(), sizeof(msg));
-
-        auto* received_msg = reinterpret_cast<decltype(&msg)>(buffer.data());
+        auto rec = node.receive();
+        if (!rec) {
+            fprintf(stderr, "Failed to receive message\n");
+            exit(1);
+        }
+        auto received_msg = std::static_pointer_cast<decltype(msg)>(rec);
         EXPECT_EQ(received_msg->meta_info.id, msg.meta_info.id);
         EXPECT_STREQ(received_msg->meta_info.name, msg.meta_info.name);
         EXPECT_DOUBLE_EQ(received_msg->meta_info.value, msg.meta_info.value);
@@ -104,7 +112,7 @@ void test_struct()
         testing::GTEST_FLAG(print_time) = false;
 
         ipc::node node("struct");
-        node.send(&msg, sizeof(msg));
+        EXPECT_TRUE(node.send(&msg));
 
         exit(0);
     }

@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <string>
 
 namespace ipc {
@@ -26,8 +27,8 @@ public:
 
     ChannelType getType() const { return type_; }
 
-    virtual void send(const void* data, size_t size) = 0;
-    virtual void receive(void* buffer, size_t size) = 0;
+    virtual bool send(const void* data) = 0;
+    virtual std::shared_ptr<void> receive() = 0;
 
 protected:
     ChannelType type_;
@@ -44,8 +45,8 @@ public:
 
     const std::string& getName() const { return name_; }
 
-    void send(void const* data, std::size_t size);
-    void receive(void* data, std::size_t size);
+    bool send(const void* data);
+    std::shared_ptr<void> receive();
 
 private:
     std::string name_; // Name of the IPC node
