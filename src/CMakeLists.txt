@@ -21,6 +21,7 @@ file(GLOB_RECURSE IPC_SRCS
     ${CMAKE_CURRENT_LIST_DIR}/*.cpp
 )
 add_library(ipc STATIC ${IPC_SRCS})
+set_property(TARGET ipc PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 target_include_directories(ipc PUBLIC
     ${LIBIPC_INCLUDE_DIR}
