@@ -15,7 +15,7 @@ public:
     message_queue(key_t key);
     ~message_queue();
 
-    bool send(const void* data) override;
+    bool send(const void* data, size_t data_size = 0) override;
     std::shared_ptr<void> receive() override;
     static constexpr long MESSAGE_TYPE = 1;
 

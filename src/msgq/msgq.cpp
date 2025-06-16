@@ -39,14 +39,15 @@ message_queue::~message_queue()
     }
 }
 
-bool message_queue::send(const void* data)
+bool message_queue::send(const void* data, size_t data_size)
 {
     if (!data) {
         perror("Data is null\n");
         return false;
     }
 
-    size_t data_size = strlen(static_cast<const char*>(data)) + 1; // +1 for null terminator
+    if (data_size == 0)
+        data_size = strlen(static_cast<const char*>(data)) + 1; // +1 for null terminator
     size_t total_size = sizeof(msg) + data_size;
     ASSERT_RETURN(total_size > max_msg_size, false, "Data size %zu exceeds maximum message size %zu", data_size, max_msg_size);
 

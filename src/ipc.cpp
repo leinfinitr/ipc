@@ -37,10 +37,10 @@ node::~node()
     delete channel_;
 }
 
-bool node::send(void const* data)
+bool node::send(void const* data, size_t data_size)
 {
     if (channel_) {
-        return channel_->send(data);
+        return channel_->send(data, data_size);
     } else {
         fprintf(stderr, "Channel not initialized.\n");
         return false;
