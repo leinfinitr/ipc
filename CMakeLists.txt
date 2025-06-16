@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.12)
 
 project(ipc VERSION 1.0.0 LANGUAGES C CXX)
 
+if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+    add_compile_definitions(DEBUG)
+    add_compile_options(-g -O0)
+endif()
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_FLAGS_RELEASE   "$ENV{CFLAGS}   -O3 -DRELEASE_MODE")
 set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -DRELEASE_MODE")
