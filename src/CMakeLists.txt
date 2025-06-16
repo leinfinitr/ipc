@@ -18,11 +18,6 @@ target_include_directories(msgq PUBLIC
     ${LIBIPC_INCLUDE_DIR}/msgq
 )
 
-install(TARGETS msgq
-    ARCHIVE DESTINATION lib
-    LIBRARY DESTINATION lib
-)
-
 # ipc library
 file(GLOB_RECURSE IPC_SRCS
     ${CMAKE_CURRENT_LIST_DIR}/*.c
