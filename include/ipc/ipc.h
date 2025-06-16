@@ -27,8 +27,9 @@ public:
 
     ChannelType getType() const { return type_; }
 
-    virtual bool send(const void* data, size_t data_size = 0) = 0;
+    virtual bool send(const void* data, size_t data_size) = 0;
     virtual std::shared_ptr<void> receive() = 0;
+    virtual bool remove() = 0;
 
 protected:
     ChannelType type_;
@@ -45,27 +46,13 @@ public:
 
     const std::string& getName() const { return name_; }
 
-    bool send(const void* data, size_t data_size = 0);
+    bool send(const void* data, size_t data_size);
     std::shared_ptr<void> receive();
-
-    template <typename T>
-    bool send_struct(const T& data)
-    {
-        return send(&data, sizeof(T));
-    }
-
-    template <typename T>
-    std::shared_ptr<T> receive_struct()
-    {
-        auto rec = receive();
-        if (!rec)
-            return nullptr; // Return nullptr if no message was received
-        return std::static_pointer_cast<T>(rec); // Cast the received data to the expected type
-    }
+    bool remove();
 
 private:
     std::string name_; // Name of the IPC node
-    Channel* channel_; // Pointer to the underlying IPC channel
+    std::shared_ptr<Channel> channel_; // Pointer to the underlying IPC channel
 };
 
 } // namespace ipc

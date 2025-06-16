@@ -17,9 +17,10 @@ public:
 
     bool send(const void* data, size_t data_size = 0) override;
     std::shared_ptr<void> receive() override;
-    static constexpr long MESSAGE_TYPE = 1;
+    bool remove() override;
 
 private:
+    static constexpr long MESSAGE_TYPE = 1;
     int msgid;
     msglen_t max_msg_size = 0;
     bool create_flag = true;

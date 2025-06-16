@@ -29,14 +29,7 @@ message_queue::message_queue(key_t key)
 
 message_queue::~message_queue()
 {
-    if (create_flag) {
-        if (msgctl(msgid, IPC_RMID, nullptr) == -1) {
-            perror("msgctl fail");
-        }
-    } else {
-        // If the queue was not created by this instance, we do not remove it.
-        // This is to avoid removing a queue that might be used by other processes.
-    }
+    message_queue::remove();
 }
 
 bool message_queue::send(const void* data, size_t data_size)
@@ -46,8 +39,6 @@ bool message_queue::send(const void* data, size_t data_size)
         return false;
     }
 
-    if (data_size == 0)
-        data_size = strlen(static_cast<const char*>(data)) + 1; // +1 for null terminator
     size_t total_size = sizeof(msg) + data_size;
     ASSERT_RETURN(total_size > max_msg_size, false, "Data size %zu exceeds maximum message size %zu", data_size, max_msg_size);
 
@@ -84,6 +75,22 @@ std::shared_ptr<void> message_queue::receive()
     ASSERT_RETURN(!result, nullptr, "malloc fail");
     memcpy(result.get(), message->data, message->size);
     return result;
+}
+
+bool message_queue::remove()
+{
+    if (create_flag) {
+        if (msgctl(msgid, IPC_RMID, nullptr) == -1) {
+            perror("msgctl(IPC_RMID) fail");
+            return false;
+        }
+        msgid = -1; // Reset msgid to indicate the queue has been removed
+        create_flag = false; // Mark the queue as no longer created by this instance
+    } else {
+        // If the queue was not created by this instance, we do not remove it.
+        // This is to avoid removing a queue that might be used by other processes.
+    }
+    return true;
 }
 
 } // namespace msgq

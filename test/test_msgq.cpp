@@ -30,7 +30,7 @@ void test_basic()
         testing::GTEST_FLAG(print_time) = false;
 
         ipc::node node("basic");
-        EXPECT_TRUE(node.send(msg));
+        EXPECT_TRUE(node.send(msg, strlen(msg)));
 
         exit(0);
     }
@@ -64,7 +64,7 @@ void test_loop()
         ipc::node node("loop");
         for (int i = 0; i < 20; ++i) {
             std::string full_msg = std::string(base_msg) + " - Message #" + std::to_string(i + 1);
-            EXPECT_TRUE(node.send(full_msg.c_str()));
+            EXPECT_TRUE(node.send(full_msg.c_str(), full_msg.size() + 1)); // +1 for null terminator
         }
 
         exit(0);
@@ -92,9 +92,9 @@ void test_struct_no_fork()
     strcpy(msg.mtext, "Hello, IPC with struct!");
 
     ipc::node node("struct_no_fork");
-    EXPECT_TRUE(node.send_struct<message>(msg));
+    EXPECT_TRUE(node.send(&msg, sizeof(msg)));
 
-    auto rec = node.receive_struct<message>();
+    auto rec = node.receive();
     if (!rec) {
         fprintf(stderr, "Failed to receive message\n");
         exit(1);
@@ -133,7 +133,7 @@ void test_struct()
         exit(1);
     } else if (pid != 0) {
         ipc::node node("struct");
-        auto rec = node.receive_struct<message>();
+        auto rec = node.receive();
         if (!rec) {
             fprintf(stderr, "Failed to receive message\n");
             exit(1);
@@ -149,7 +149,7 @@ void test_struct()
         testing::GTEST_FLAG(print_time) = false;
 
         ipc::node node("struct");
-        EXPECT_TRUE(node.send_struct<message>(msg));
+        EXPECT_TRUE(node.send(&msg, sizeof(msg)));
 
         exit(0);
     }
@@ -174,9 +174,9 @@ void test_class_no_fork()
     MyClass obj(1, "Test Class", 3.14);
 
     ipc::node node("class_no_fork");
-    EXPECT_TRUE(node.send_struct<MyClass>(obj));
+    EXPECT_TRUE(node.send(&obj, sizeof(MyClass)));
 
-    auto rec = node.receive_struct<MyClass>();
+    auto rec = node.receive();
     if (!rec) {
         fprintf(stderr, "Failed to receive message\n");
         exit(1);
@@ -211,7 +211,7 @@ void test_class()
         exit(1);
     } else if (pid != 0) {
         ipc::node node("class");
-        auto rec = node.receive_struct<MyClass>();
+        auto rec = node.receive();
         if (!rec) {
             fprintf(stderr, "Failed to receive message\n");
             exit(1);
@@ -225,7 +225,7 @@ void test_class()
         testing::GTEST_FLAG(print_time) = false;
 
         ipc::node node("class");
-        EXPECT_TRUE(node.send_struct<MyClass>(obj));
+        EXPECT_TRUE(node.send(&obj, sizeof(MyClass)));
 
         exit(0);
     }
@@ -259,9 +259,9 @@ void test_subclass_no_fork()
     Derived obj(1, "Test Subclass", 2.718);
 
     ipc::node node("subclass_no_fork");
-    EXPECT_TRUE(node.send_struct<Derived>(obj));
+    EXPECT_TRUE(node.send(&obj, sizeof(Derived)));
 
-    auto rec = node.receive_struct<Base>();
+    auto rec = node.receive();
     if (!rec) {
         fprintf(stderr, "Failed to receive message\n");
         exit(1);

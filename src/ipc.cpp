@@ -1,8 +1,10 @@
 #include <functional>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/ipc.h>
 
+#include "ipc/assert.h"
 #include "ipc/ipc.h"
 #include "ipc/msgq/msgq.h"
 
@@ -14,37 +16,30 @@ node::node(std::string name, ChannelType type)
     std::hash<std::string> hasher;
     size_t hash = hasher(name_);
     key_t key = static_cast<key_t>(hash & 0xFFFFFFFF);
-    if (key == IPC_PRIVATE) {
-        perror("Generated key is IPC_PRIVATE, which is invalid");
-        exit(EXIT_FAILURE);
-    }
+    ASSERT_EXIT(key == IPC_PRIVATE, "Generated key is IPC_PRIVATE, which is invalid");
 
     switch (type) {
     case ChannelType::MessageQueue:
-        channel_ = new msgq::message_queue(key);
+        channel_ = std::make_shared<msgq::message_queue>(key);
         break;
     case ChannelType::SharedMemory:
-        fprintf(stderr, "Shared memory channel not implemented yet.\n");
-        exit(EXIT_FAILURE);
+        ASSERT_EXIT(true, "Shared memory channel not implemented yet.");
     default:
-        fprintf(stderr, "Unknown channel type.\n");
-        exit(EXIT_FAILURE);
+        ASSERT_EXIT(true, "Unknown channel type");
     }
 }
 
 node::~node()
 {
-    delete channel_;
+    remove();
 }
 
 bool node::send(void const* data, size_t data_size)
 {
     if (channel_) {
         return channel_->send(data, data_size);
-    } else {
-        fprintf(stderr, "Channel not initialized.\n");
-        return false;
-    }
+    } else
+        ASSERT_RETURN(true, false, "Channel not initialized");
 }
 
 std::shared_ptr<void> node::receive()
@@ -52,9 +47,18 @@ std::shared_ptr<void> node::receive()
     if (channel_) {
         return channel_->receive();
     } else {
-        fprintf(stderr, "Channel not initialized.\n");
-        return nullptr;
+        ASSERT_RETURN(true, nullptr, "Channel not initialized");
     }
 }
 
-} // namespace msgq
+bool node::remove()
+{
+    if (channel_) {
+        bool result = channel_->remove();
+        channel_.reset(); // Reset the shared pointer to release the channel
+        return result;
+    }
+    return true; // No channel to disconnect
+}
+
+} // namespace ipc
