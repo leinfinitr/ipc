@@ -3,8 +3,8 @@
 #include <unistd.h>
 #include <vector>
 
-#include "ipc.h"
-#include "msgq/msgq.h"
+#include "ipc/ipc.h"
+#include "ipc/msgq/msgq.h"
 
 using namespace ipc;
 

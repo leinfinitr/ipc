@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <sys/ipc.h>
 
-#include "ipc.h"
-#include "msgq.h"
+#include "ipc/ipc.h"
+#include "ipc/msgq/msgq.h"
 
 namespace ipc {
 

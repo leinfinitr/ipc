@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <sys/msg.h>
 
-#include "ipc.h"
+#include "ipc/ipc.h"
 
 using namespace ipc;
 
