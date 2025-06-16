@@ -46,7 +46,7 @@ bool message_queue::send(const void* data)
         return false;
     }
 
-    size_t data_size = data ? strlen(static_cast<const char*>(data)) : 0;
+    size_t data_size = strlen(static_cast<const char*>(data)) + 1; // +1 for null terminator
     size_t total_size = sizeof(msg) + data_size;
     ASSERT_RETURN(total_size > max_msg_size, false, "Data size %zu exceeds maximum message size %zu", data_size, max_msg_size);
 
@@ -57,7 +57,6 @@ bool message_queue::send(const void* data)
     message->size = data_size;
     memcpy(message->data, data, data_size);
 
-    // msgsnd expects the size excluding the mtype field
     if (msgsnd(msgid, message, total_size, 0) == -1) {
         perror("msgsnd fail");
         free(message);
