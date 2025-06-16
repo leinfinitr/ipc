@@ -23,8 +23,8 @@ void test_basic()
             fprintf(stderr, "Failed to receive message\n");
             exit(1);
         }
-        std::vector<char> res(static_cast<char*>(rec.get()), static_cast<char*>(rec.get()) + strlen(static_cast<char*>(rec.get())) + 1);
-        EXPECT_STREQ(res.data(), msg);
+        const char* res = static_cast<const char*>(rec.get());
+        EXPECT_STREQ(res, msg);
     } else {
         testing::GTEST_FLAG(output) = "";
         testing::GTEST_FLAG(print_time) = false;
@@ -53,9 +53,9 @@ void test_loop()
                 fprintf(stderr, "Failed to receive message\n");
                 exit(1);
             }
-            std::vector<char> buffer(static_cast<char*>(rec.get()), static_cast<char*>(rec.get()) + strlen(static_cast<char*>(rec.get())) + 1);
+            const char* res = static_cast<const char*>(rec.get());
             std::string expected_msg = std::string(base_msg) + " - Message #" + std::to_string(i + 1);
-            EXPECT_STREQ(buffer.data(), expected_msg.c_str());
+            EXPECT_STREQ(res, expected_msg.c_str());
         }
     } else {
         testing::GTEST_FLAG(output) = "";
@@ -71,6 +71,42 @@ void test_loop()
     }
 }
 
+void test_struct_no_fork()
+{
+    struct meta {
+        int id;
+        char name[50];
+        double value;
+    };
+    struct message {
+        meta meta_info;
+        long num;
+        char mtext[256];
+    };
+
+    message msg;
+    msg.meta_info.id = 1;
+    strcpy(msg.meta_info.name, "Test Message");
+    msg.meta_info.value = 42.0;
+    msg.num = 1;
+    strcpy(msg.mtext, "Hello, IPC with struct!");
+
+    ipc::node node("struct_no_fork");
+    EXPECT_TRUE(node.send_struct<message>(msg));
+
+    auto rec = node.receive_struct<message>();
+    if (!rec) {
+        fprintf(stderr, "Failed to receive message\n");
+        exit(1);
+    }
+    auto received_msg = static_cast<message*>(rec.get());
+    EXPECT_EQ(received_msg->meta_info.id, msg.meta_info.id);
+    EXPECT_STREQ(received_msg->meta_info.name, msg.meta_info.name);
+    EXPECT_DOUBLE_EQ(received_msg->meta_info.value, msg.meta_info.value);
+    EXPECT_EQ(received_msg->num, msg.num);
+    EXPECT_STREQ(received_msg->mtext, msg.mtext);
+}
+
 void test_struct()
 {
     struct meta {
@@ -78,16 +114,17 @@ void test_struct()
         char name[50];
         double value;
     };
-    struct {
+    struct message {
         meta meta_info;
-        long mtype;
+        long num;
         char mtext[256];
-    } msg;
+    };
 
+    message msg;
     msg.meta_info.id = 1;
     strcpy(msg.meta_info.name, "Test Message");
     msg.meta_info.value = 42.0;
-    msg.mtype = 1;
+    msg.num = 1;
     strcpy(msg.mtext, "Hello, IPC with struct!");
 
     pid_t pid = fork();
@@ -96,23 +133,23 @@ void test_struct()
         exit(1);
     } else if (pid != 0) {
         ipc::node node("struct");
-        auto rec = node.receive();
+        auto rec = node.receive_struct<message>();
         if (!rec) {
             fprintf(stderr, "Failed to receive message\n");
             exit(1);
         }
-        auto received_msg = std::static_pointer_cast<decltype(msg)>(rec);
+        auto received_msg = static_cast<message*>(rec.get());
         EXPECT_EQ(received_msg->meta_info.id, msg.meta_info.id);
         EXPECT_STREQ(received_msg->meta_info.name, msg.meta_info.name);
         EXPECT_DOUBLE_EQ(received_msg->meta_info.value, msg.meta_info.value);
-        EXPECT_EQ(received_msg->mtype, msg.mtype);
+        EXPECT_EQ(received_msg->num, msg.num);
         EXPECT_STREQ(received_msg->mtext, msg.mtext);
     } else {
         testing::GTEST_FLAG(output) = "";
         testing::GTEST_FLAG(print_time) = false;
 
         ipc::node node("struct");
-        EXPECT_TRUE(node.send(&msg));
+        EXPECT_TRUE(node.send_struct<message>(msg));
 
         exit(0);
     }
@@ -130,5 +167,6 @@ TEST(MSGQ, loop)
 
 TEST(MSGQ, struct)
 {
+    test_struct_no_fork();
     test_struct();
 }
