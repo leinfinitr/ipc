@@ -65,7 +65,17 @@ std::shared_ptr<void> message_queue::receive()
     ASSERT_RETURN(!buffer, nullptr, "malloc fail");
 
     ssize_t received = msgrcv(msgid, buffer.get(), max_msg_size, 0, 0);
-    ASSERT_RETURN(received == -1, nullptr, "msgrcv fail");
+    if (received == -1) {
+        switch (errno) {
+        case EINTR:
+            // Interrupted by a signal
+            printf("[ipc/msgq] msgrcv interrupted by signal\n");
+            break;
+        default:
+            perror("msgrcv fail");
+        }
+        return nullptr;
+    }
 
     msg* message = reinterpret_cast<msg*>(buffer.get());
     ASSERT_RETURN(static_cast<size_t>(received) != sizeof(msg) + message->size, nullptr,
