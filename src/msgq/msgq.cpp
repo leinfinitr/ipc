@@ -47,17 +47,22 @@ bool message_queue::send(const void* data)
     }
 
     size_t data_size = data ? strlen(static_cast<const char*>(data)) : 0;
-    size_t total_size = sizeof(msg) + data_size; // +1 for null terminator
+    size_t total_size = sizeof(msg) + data_size;
     ASSERT_RETURN(total_size > max_msg_size, false, "Data size %zu exceeds maximum message size %zu", data_size, max_msg_size);
 
     msg* message = static_cast<msg*>(malloc(total_size));
     ASSERT_RETURN(!message, false, "malloc fail");
 
+    message->mtype = MESSAGE_TYPE;
     message->size = data_size;
     memcpy(message->data, data, data_size);
 
-    if (msgsnd(msgid, message, total_size, 0) == -1)
+    // msgsnd expects the size excluding the mtype field
+    if (msgsnd(msgid, message, total_size, 0) == -1) {
         perror("msgsnd fail");
+        free(message);
+        return false;
+    }
 
     free(message);
     return true;

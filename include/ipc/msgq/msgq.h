@@ -17,6 +17,7 @@ public:
 
     bool send(const void* data) override;
     std::shared_ptr<void> receive() override;
+    static constexpr long MESSAGE_TYPE = 1;
 
 private:
     int msgid;
@@ -24,7 +25,7 @@ private:
     bool create_flag = true;
 
     struct msg {
-        long mtype = 0;
+        long mtype; // Message type, required by System V communication standards
         size_t size;
         char data[];
     };
