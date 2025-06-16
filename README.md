@@ -17,11 +17,11 @@ This repository implements a C++ IPC library based on the System V IPC interface
 
 Ensure that relevant compilation tools such as GCC, Makefile, and CMake are installed, and then compile using the `make` command.
 
-After compilation, generate a static library file named `libipc. a` in the `output` directory.
+After compilation, generate a static library file named `libipc.a` in the `output` directory.
 
 ### Usage method
 
-For projects built using CMake, the IPC library can be introduced in the following ways:
+For projects built by CMake, the IPC library can be introduced in the following ways:
 
 ```cmake
 set(IPC_LIB_PATH "/path/to/libipc.a")
@@ -36,7 +36,7 @@ target_link_libraries(your_target ipc)
 target_include_directories(your_target PRIVATE ${IPC_INCLUDE_DIR})
 ```
 
-In C++ code, use:
+In C++ code:
 
 ```cpp
 #include <ipc/ipc.h>
@@ -52,7 +52,7 @@ auto rec = ipc_node.receive();      // Receive messages
 
 Two example programs are provided in the `examples` directory: `sender.cpp` and `receiver.cpp`.
 
-The operation mode is as follows:
+The usage method is as follows:
 
 ```bash
 cd examples
