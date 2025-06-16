@@ -155,6 +155,123 @@ void test_struct()
     }
 }
 
+void test_class_no_fork()
+{
+    class MyClass {
+    public:
+        int id;
+        char name[50];
+        double value;
+
+        MyClass(int i, const char* n, double v)
+            : id(i)
+            , value(v)
+        {
+            strncpy(name, n, sizeof(name) - 1);
+        }
+    };
+
+    MyClass obj(1, "Test Class", 3.14);
+
+    ipc::node node("class_no_fork");
+    EXPECT_TRUE(node.send_struct<MyClass>(obj));
+
+    auto rec = node.receive_struct<MyClass>();
+    if (!rec) {
+        fprintf(stderr, "Failed to receive message\n");
+        exit(1);
+    }
+    auto received_obj = static_cast<MyClass*>(rec.get());
+    EXPECT_EQ(received_obj->id, obj.id);
+    EXPECT_STREQ(received_obj->name, obj.name);
+    EXPECT_DOUBLE_EQ(received_obj->value, obj.value);
+}
+
+void test_class()
+{
+    class MyClass {
+    public:
+        int id;
+        char name[50];
+        double value;
+
+        MyClass(int i, const char* n, double v)
+            : id(i)
+            , value(v)
+        {
+            strncpy(name, n, sizeof(name) - 1);
+        }
+    };
+
+    MyClass obj(1, "Test Class", 3.14);
+
+    pid_t pid = fork();
+    if (pid == -1) {
+        perror("fork fail");
+        exit(1);
+    } else if (pid != 0) {
+        ipc::node node("class");
+        auto rec = node.receive_struct<MyClass>();
+        if (!rec) {
+            fprintf(stderr, "Failed to receive message\n");
+            exit(1);
+        }
+        auto received_obj = static_cast<MyClass*>(rec.get());
+        EXPECT_EQ(received_obj->id, obj.id);
+        EXPECT_STREQ(received_obj->name, obj.name);
+        EXPECT_DOUBLE_EQ(received_obj->value, obj.value);
+    } else {
+        testing::GTEST_FLAG(output) = "";
+        testing::GTEST_FLAG(print_time) = false;
+
+        ipc::node node("class");
+        EXPECT_TRUE(node.send_struct<MyClass>(obj));
+
+        exit(0);
+    }
+}
+
+void test_subclass_no_fork()
+{
+    class Base {
+    public:
+        int id;
+        char name[50];
+
+        Base(int i, const char* n)
+            : id(i)
+        {
+            strncpy(name, n, sizeof(name) - 1);
+        }
+    };
+
+    class Derived : public Base {
+    public:
+        double value;
+
+        Derived(int i, const char* n, double v)
+            : Base(i, n)
+            , value(v)
+        {
+        }
+    };
+
+    Derived obj(1, "Test Subclass", 2.718);
+
+    ipc::node node("subclass_no_fork");
+    EXPECT_TRUE(node.send_struct<Derived>(obj));
+
+    auto rec = node.receive_struct<Base>();
+    if (!rec) {
+        fprintf(stderr, "Failed to receive message\n");
+        exit(1);
+    }
+    auto received_obj = static_cast<Derived*>(rec.get());
+    EXPECT_EQ(received_obj->id, obj.id);
+    EXPECT_STREQ(received_obj->name, obj.name);
+    EXPECT_DOUBLE_EQ(received_obj->value, obj.value);
+}
+
 TEST(MSGQ, basic)
 {
     test_basic();
@@ -169,4 +286,11 @@ TEST(MSGQ, struct)
 {
     test_struct_no_fork();
     test_struct();
+}
+
+TEST(MSGQ, class)
+{
+    test_class_no_fork();
+    test_class();
+    test_subclass_no_fork();
 }
