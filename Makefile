@@ -33,7 +33,7 @@ else
 	PARALLEL_OPTIONS = -- -j$(CPU_CORES)
 endif
 
-BUILD_PATH			= ${WORK_PATH}/build
+BUILD_PATH		= ${WORK_PATH}/build
 OUTPUT_PATH		= ${WORK_PATH}/output
 
 .PHONY: build
