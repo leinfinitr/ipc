@@ -16,11 +16,18 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${LIBIPC_PROJECT_DIR}/3rdparty/gtest/include
 )
 
-target_link_libraries(${PROJECT_NAME} 
-    gtest
-    ipc
-    pthread
-)
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    target_link_libraries(${PROJECT_NAME} 
+        gtest
+        ipc
+        pthread
+    )
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    target_link_libraries(${PROJECT_NAME} 
+        gtest
+        ipc
+    )
+endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
     INSTALL_RPATH_USE_LINK_PATH TRUE

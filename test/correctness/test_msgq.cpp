@@ -1,3 +1,4 @@
+#ifndef _WIN32
 #include <cstring>
 #include <gtest/gtest.h>
 #include <unistd.h>
@@ -293,3 +294,4 @@ TEST(MSGQ, class)
     test_class();
     test_subclass_no_fork();
 }
+#endif
