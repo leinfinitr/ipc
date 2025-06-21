@@ -2,17 +2,33 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/ipc.h>
 
 #include "ipc/assert.h"
 #include "ipc/ipc.h"
+
+#ifdef _WIN32
+#include "ipc/pipe/pipe.h"
+#else
 #include "ipc/msgq/msgq.h"
+#include <sys/ipc.h>
+#endif
 
 namespace ipc {
 
 node::node(std::string name, ChannelType type)
     : name_(std::move(name))
 {
+#ifdef _WIN32
+    switch (type) {
+    case ChannelType::MessageQueue:
+        ASSERT_EXIT(true, "Message queue channel not implemented yet.");
+    case ChannelType::NamedPipe:
+        channel_ = std::make_shared<pipe::named_pipe>(name_);
+        break;
+    default:
+        ASSERT_EXIT(true, "Unknown channel type");
+    }
+#else
     std::hash<std::string> hasher;
     size_t hash = hasher(name_);
     key_t key = static_cast<key_t>(hash & 0xFFFFFFFF);
@@ -27,6 +43,7 @@ node::node(std::string name, ChannelType type)
     default:
         ASSERT_EXIT(true, "Unknown channel type");
     }
+#endif
 }
 
 node::~node()

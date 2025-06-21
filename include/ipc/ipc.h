@@ -9,7 +9,7 @@ namespace ipc {
 
 enum class ChannelType {
     MessageQueue,
-    SharedMemory
+    NamedPipe
 };
 
 class Channel {
