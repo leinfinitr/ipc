@@ -7,6 +7,12 @@
 
 namespace ipc {
 
+enum class LinkType {
+    Unknown,
+    Sender,
+    Receiver
+};
+
 enum class ChannelType {
     MessageQueue,
     NamedPipe
@@ -14,30 +20,25 @@ enum class ChannelType {
 
 class Channel {
 public:
-    explicit Channel(ChannelType type)
-        : type_(type)
-    {
-    }
-
+    Channel() = default;
     virtual ~Channel() = default;
 
     // Disable copy constructor and assignment operator
     Channel(const Channel&) = delete;
     Channel& operator=(const Channel&) = delete;
 
-    ChannelType getType() const { return type_; }
-
     virtual bool send(const void* data, size_t data_size) = 0;
     virtual std::shared_ptr<void> receive() = 0;
     virtual bool remove() = 0;
-
-protected:
-    ChannelType type_;
 };
 
 class node {
 public:
-    node(std::string name, ChannelType type = ChannelType::MessageQueue);
+    node(std::string name, LinkType ltype = LinkType::Unknown, ChannelType ctype = ChannelType::MessageQueue);
+    node(std::string name, ChannelType ctype)
+        : node(name, LinkType::Unknown, ctype)
+    {
+    }
     ~node();
 
     // Disable copy constructor and assignment operator

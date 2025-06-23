@@ -9,32 +9,49 @@
 
 namespace pipe {
 
-named_pipe::named_pipe(const std::string& name)
-    : Channel(ChannelType::NamedPipe)
-    , pipe_(INVALID_HANDLE_VALUE)
+named_pipe::named_pipe(const std::string& name, LinkType ltype)
+    : pipe_(INVALID_HANDLE_VALUE)
+    , link_type_(ltype)
     , pipe_name_(R"(\\.\pipe\)" + name)
 {
-    pipe_ = CreateNamedPipeA(
-        pipe_name_.c_str(),
-        PIPE_ACCESS_DUPLEX,
-        PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT,
-        1,
-        BUFFER_SIZE,
-        BUFFER_SIZE,
-        0,
-        NULL);
-
-    if (pipe_ == INVALID_HANDLE_VALUE) {
+    switch (ltype) {
+    case LinkType::Unknown:
+        ASSERT_RETURN(true, , "Link type must be specified in named_pipe constructor");
+        break;
+    case LinkType::Sender:
+        ASSERT_RETURN(!WaitNamedPipeA(pipe_name_.c_str(), NMPWAIT_USE_DEFAULT_WAIT), , "No Read Pipe Accessible");
         pipe_ = CreateFileA(
             pipe_name_.c_str(),
             GENERIC_READ | GENERIC_WRITE,
-            0,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
             NULL,
             OPEN_EXISTING,
             0,
             NULL);
 
-        ASSERT_EXIT(pipe_ == INVALID_HANDLE_VALUE, "Failed to open named pipe");
+        ASSERT_RETURN(pipe_ == INVALID_HANDLE_VALUE, , "CreateFileA failed, erro = %lu\n", GetLastError());
+        break;
+    case LinkType::Receiver:
+        pipe_ = CreateNamedPipeA(
+            pipe_name_.c_str(),
+            PIPE_ACCESS_DUPLEX,
+            PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT,
+            1, // Maximum instances
+            BUFFER_SIZE, // Output buffer size
+            BUFFER_SIZE, // Input buffer size
+            0, // Default timeout
+            NULL);
+
+        ASSERT_RETURN(pipe_ == INVALID_HANDLE_VALUE, , "CreateNamedPipeA failed, error = %lu\n", GetLastError());
+        if (!ConnectNamedPipe(pipe_, NULL)) {
+            fprintf(stderr, "ConnectNamedPipe failed, error: %lu\n", GetLastError());
+            CloseHandle(pipe_);
+            pipe_ = INVALID_HANDLE_VALUE;
+        }
+        break;
+    default:
+        ASSERT_RETURN(true, , "Unknown link type in named_pipe constructor");
+        break;
     }
 }
 
@@ -45,10 +62,7 @@ named_pipe::~named_pipe()
 
 bool named_pipe::send(const void* data, size_t data_size)
 {
-    if (!data) {
-        fprintf(stderr, "Data is null\n");
-        return false;
-    }
+    ASSERT_RETURN(!data, false, "Data is null");
 
     DWORD bytesWritten;
     BOOL success = WriteFile(
@@ -58,10 +72,8 @@ bool named_pipe::send(const void* data, size_t data_size)
         &bytesWritten,
         NULL);
 
-    if (!success || bytesWritten != data_size) {
-        fprintf(stderr, "WriteFile failed, error: %lu\n", GetLastError());
-        return false;
-    }
+    ASSERT_RETURN(!success, false, "WriteFile failed, error = %lu", GetLastError());
+    ASSERT_RETURN(bytesWritten != data_size, false, "WriteFile did not write all data, expected: %zu, written: %lu", data_size, bytesWritten);
 
     return true;
 }
@@ -77,22 +89,10 @@ std::shared_ptr<void> named_pipe::receive()
         BUFFER_SIZE,
         &bytesRead,
         NULL);
-
-    if (!success) {
-        DWORD err = GetLastError();
-        if (err == ERROR_BROKEN_PIPE) {
-            printf("[ipc/msgq] Pipe disconnected\n");
-        } else {
-            fprintf(stderr, "ReadFile failed, error: %lu\n", err);
-        }
-        return nullptr;
-    }
+    ASSERT_RETURN(!success, nullptr, "ReadFile failed, error = %lu", GetLastError());
 
     std::shared_ptr<void> result(malloc(bytesRead), free);
-    if (!result) {
-        fprintf(stderr, "malloc fail\n");
-        return nullptr;
-    }
+    ASSERT_RETURN(!result, nullptr, "malloc failed");
 
     memcpy(result.get(), buffer, bytesRead);
     return result;
@@ -101,6 +101,7 @@ std::shared_ptr<void> named_pipe::receive()
 bool named_pipe::remove()
 {
     if (pipe_ != INVALID_HANDLE_VALUE) {
+        DisconnectNamedPipe(pipe_);
         CloseHandle(pipe_);
         pipe_ = INVALID_HANDLE_VALUE;
     }

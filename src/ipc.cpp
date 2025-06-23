@@ -15,15 +15,15 @@
 
 namespace ipc {
 
-node::node(std::string name, ChannelType type)
+node::node(std::string name, LinkType ltype, ChannelType ctype)
     : name_(std::move(name))
 {
 #ifdef _WIN32
-    switch (type) {
+    switch (ctype) {
     case ChannelType::MessageQueue:
         ASSERT_EXIT(true, "Message queue channel not implemented yet.");
     case ChannelType::NamedPipe:
-        channel_ = std::make_shared<pipe::named_pipe>(name_);
+        channel_ = std::make_shared<pipe::named_pipe>(name_, ltype);
         break;
     default:
         ASSERT_EXIT(true, "Unknown channel type");
@@ -34,7 +34,7 @@ node::node(std::string name, ChannelType type)
     key_t key = static_cast<key_t>(hash & 0xFFFFFFFF);
     ASSERT_EXIT(key == IPC_PRIVATE, "Generated key is IPC_PRIVATE, which is invalid");
 
-    switch (type) {
+    switch (ctype) {
     case ChannelType::MessageQueue:
         channel_ = std::make_shared<msgq::message_queue>(key);
         break;
