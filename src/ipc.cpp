@@ -38,8 +38,8 @@ node::node(std::string name, LinkType ltype, ChannelType ctype)
     case ChannelType::MessageQueue:
         channel_ = std::make_shared<msgq::message_queue>(key);
         break;
-    case ChannelType::SharedMemory:
-        ASSERT_EXIT(true, "Shared memory channel not implemented yet.");
+    case ChannelType::NamedPipe:
+        ASSERT_EXIT(true, "Named pipe channel not implemented yet.");
     default:
         ASSERT_EXIT(true, "Unknown channel type");
     }

@@ -12,8 +12,7 @@
 namespace msgq {
 
 message_queue::message_queue(key_t key)
-    : Channel(ChannelType::MessageQueue)
-    , msgid(-1)
+    : msgid(-1)
 {
     msgid = msgget(key, IPC_EXCL | IPC_CREAT | 0666);
     if (msgid == -1) {
