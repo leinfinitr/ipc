@@ -11,10 +11,6 @@ foreach(TEST_PERF_SRC ${TEST_PERF_SRCS})
     target_include_directories(${TEST_TARGET} PRIVATE
         ${LIBIPC_INCLUDE_DIR}
     )
-    target_compile_options(${TEST_TARGET} PRIVATE
-        -Wall
-        -Wextra
-    )
     target_link_libraries(${TEST_TARGET} PRIVATE
         ipc
     )

@@ -1,4 +1,2 @@
 add_subdirectory(correctness)
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    add_subdirectory(performance)
-endif()
+add_subdirectory(performance)

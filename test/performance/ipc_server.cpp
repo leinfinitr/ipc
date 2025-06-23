@@ -9,8 +9,16 @@
 int main()
 {
     // Create separate channels for receiving and sending
+    #ifdef _WIN32
+    ipc::node receiver("ipc-latency-request", ipc::LinkType::Receiver, ipc::ChannelType::NamedPipe);
+    // Ensure that the "ipc-latency-response" server is started and waiting for connection
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    ipc::node sender("ipc-latency-response", ipc::LinkType::Sender, ipc::ChannelType::NamedPipe);
+    #else
     ipc::node receiver("ipc-latency-request");
     ipc::node sender("ipc-latency-response");
+    #endif
+    
 
     std::cout << "IPC echo server is running" << std::endl;
     std::cout << "Receiving on channel: ipc-latency-request" << std::endl;
