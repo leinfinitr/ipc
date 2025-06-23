@@ -34,7 +34,11 @@ public:
 
 class node {
 public:
+    #ifdef _WIN32
+    node(std::string name, LinkType ltype = LinkType::Unknown, ChannelType ctype = ChannelType::NamedPipe);
+    #else
     node(std::string name, LinkType ltype = LinkType::Unknown, ChannelType ctype = ChannelType::MessageQueue);
+    #endif
     node(std::string name, ChannelType ctype)
         : node(name, LinkType::Unknown, ctype)
     {
