@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <string>
-#include <thread>
 
 #include "ipc/assert.h"
 #include "ipc/pipe/pipe.h"

@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 #include <vector>
 #include <windows.h>
+#include <thread>
 
 #include "ipc/ipc.h"
 
