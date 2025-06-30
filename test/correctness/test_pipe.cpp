@@ -28,7 +28,10 @@ void test_basic()
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     ipc::node client_node("basic", ipc::LinkType::Sender, ipc::ChannelType::NamedPipe);
-    EXPECT_TRUE(client_node.send(msg, strlen(msg)));
+    // +1 for null terminator
+    // In some versions of compilers and dynamic library dependencies, errors may occur if there is no "+ 1" for strlen
+    // But sometimes even without "+ 1", there won't be any errors
+    EXPECT_TRUE(client_node.send(msg, strlen(msg) + 1));
 
     server_thread.join();
 }
@@ -56,7 +59,7 @@ void test_loop()
     ipc::node client_node("loop", ipc::LinkType::Sender, ipc::ChannelType::NamedPipe);
     for (int i = 0; i < 20; ++i) {
         std::string full_msg = std::string(msg) + " - Message #" + std::to_string(i + 1);
-        EXPECT_TRUE(client_node.send(full_msg.c_str(), full_msg.size() + 1)); // +1 for null terminator
+        EXPECT_TRUE(client_node.send(full_msg.c_str(), full_msg.size() + 1));
     }
 
     server_thread.join();
