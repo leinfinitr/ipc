@@ -240,7 +240,7 @@ void test_multiterminal()
         ipc::node client_node_1("multiterminal", ipc::LinkType::Sender, ipc::ChannelType::NamedPipe);
         std::string full_msg = std::string(msg) + " - Message #1";
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         EXPECT_TRUE(client_node_1.send(full_msg.c_str(), full_msg.size() + 1));
     });
 
@@ -248,7 +248,7 @@ void test_multiterminal()
         ipc::node client_node_2("multiterminal", ipc::LinkType::Sender, ipc::ChannelType::NamedPipe);
         std::string full_msg = std::string(msg) + " - Message #2";
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+        std::this_thread::sleep_for(std::chrono::milliseconds(150));
         EXPECT_TRUE(client_node_2.send(full_msg.c_str(), full_msg.size() + 1));
     });
 
@@ -292,6 +292,6 @@ TEST(MSGQ, class)
 
 TEST(MSGQ, multiterminal)
 {
-    // test_multiterminal();
+    test_multiterminal();
 }
 #endif

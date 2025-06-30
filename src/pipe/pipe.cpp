@@ -1,8 +1,10 @@
+#include <chrono>
 #include <memory>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <string>
+#include <thread>
 
 #include "ipc/assert.h"
 #include "ipc/pipe/pipe.h"
@@ -63,7 +65,8 @@ bool named_pipe::send(const void* data, size_t data_size)
 {
     ASSERT_RETURN(link_type_ == LinkType::Receiver, false, "Receiver can't send data");
     ASSERT_RETURN(!data, false, "Data is null");
-    ASSERT_RETURN(!connect(), false, "Connect failed in send");
+    while (!connect())
+        std::this_thread::sleep_for(std::chrono::nanoseconds(100));
 
     DWORD bytesWritten;
     while (true) {
@@ -90,6 +93,11 @@ bool named_pipe::send(const void* data, size_t data_size)
     }
 
     ASSERT_RETURN(bytesWritten != data_size, false, "WriteFile did not write all data, expected: %zu, written: %lu", data_size, bytesWritten);
+    // Send and receive messages only once per connection
+    // Based on this, support for multiple senders can be achieved
+    // But the performance has decreased by nearly half
+    DisconnectNamedPipe(pipe_);
+    connected_ = false;
     return true;
 }
 
@@ -128,6 +136,8 @@ std::shared_ptr<void> named_pipe::receive()
     ASSERT_RETURN(!result, nullptr, "malloc failed");
 
     memcpy(result.get(), buffer, bytesRead);
+    DisconnectNamedPipe(pipe_);
+    connected_ = false;
     return result;
 }
 
