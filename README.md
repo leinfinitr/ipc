@@ -4,24 +4,58 @@
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue)](https://github.com/XpuOS/xsched/blob/main/LICENSE)
 
-## IPC communication library with optional methods
+## IPC communication library with optional communication methods
 
-This repository implements a C++ IPC library based on the System V IPC interface, encapsulating various IPC mechanisms such as message queues and shared memory. This library aims to simplify communication operations between processes.
+This repository implements a C++ IPC library based on the **Linux System V IPC interface** and **Windows communication interface**, encapsulating various IPC mechanisms such as message queues and named pipes. This library aims to simplify communication operations between processes.
 
 ### Characteristics
 
-- The `ipc::node` instance is half duplex communication, and each instance can send or receive messages to a specific IPC channel.
-- When creating an instance of `ipc::node`, the `IPC::ChannelType` parameter can be used to specify the underlying IPC channel type, such as `MessageQueue`, `SharedMemory`, etc.
+- Supports both Linux and Windows operating systems, as well as multiple compilers such as GCC, MinGW, MSVC, etc.
+- When creating a communication node abstraction `IPC::node`, the `IPC::ChannelType` parameter can be used to specify the underlying IPC channel type, such as `messageQueue`, `NamedPipe`, etc.
 
-### Compile
+### Compile and Test
 
-Ensure that relevant compilation tools such as GCC, Makefile, and CMake are installed, and then compile using the `make` command.
+Ensure that relevant compilation tools such as Makefile and CMake are installed, and then compile using the `make` command. After compilation, a static library file named `libipc.a`(Linux) or `ipc.lib`(Windows) will be generated in the `output` directory.
 
-After compilation, generate a static library file named `libipc.a` in the `output` directory.
+Run `/output/bin/IPC-test-correctness` to perform correctness testing. To perform performance testing, run `/output/bin/ipc_server` and `/output/bin/ipc_client` sequentially on different terminals.
+
+### Communication method support
+
+- ✅ Realized
+- 🔘 Unrealized
+- 🚧 Implementing
+
+<table>
+<tr>
+<th rowspan="2">Communication method</th>
+<th colspan="2">OS</th>
+</tr>
+<tr>
+<th>Windows</th>
+<th>Linux</th>
+</tr>
+<tr>
+<td align="center">Named pipe</td>
+<td align="center">✅</td>
+<td align="center">🔘</td>
+</tr>
+<tr>
+<td align="center">Message queue</td>
+<td align="center">🔘</td>
+<td align="center">✅</td>
+</tr>
+<tr>
+<td align="center">Shared memory</td>
+<td align="center">🚧</td>
+<td align="center">🚧</td>
+</tr>
+</table>
 
 ### Usage method
 
-For projects built by CMake, the IPC library can be introduced in the following ways:
+#### Introduce IPC library
+
+For projects built using CMake, the IPC library can be introduced through the following methods:
 
 ```cmake
 set(IPC_LIB_PATH "/path/to/libipc.a")
@@ -36,19 +70,32 @@ target_link_libraries(your_target ipc)
 target_include_directories(your_target PRIVATE ${IPC_INCLUDE_DIR})
 ```
 
-In C++ code:
+#### Code Writing
+
+**Windows**: When creating IPC communication nodes, it is necessary to specify the node type as `Receiver` or `Sender`
 
 ```cpp
 #include <ipc/ipc.h>
 
-// Create an IPC node named 'Wow'
-// using message queue at the bottom mechanism
-ipc::node ipc_node("Wow", ipc::ChannelType::MessageQueue);
-ipc_node.send(data, sizeof(data));  // Send a message
-auto rec = ipc_node.receive();      // Receive messages
+// Create two IPC nodes named 'Wow', using named pipes at the bottom (Windows default)
+ipc::node receiver("Wow", ipc::LinkType::Receiver, ipc::ChannelType::NamedPipe);
+ipc::node sender("Wow", ipc::LinkType::Sender);
+auto rec = receiver.receive();   // Receive message (will block the process until the message is received)
+sender.send(data, sizeof(data)); // Send a message
 ```
 
-### Example
+**Linux**: The communication node `IPC::node` is a half duplex communication, where each instance can send or receive messages to a specific IPC channel.
+
+```cpp
+#include <ipc/ipc.h>
+
+// Create an IPC node named 'Wow' using message queues at the bottom layer
+ipc::node ipc_node("Wow", ipc::ChannelType::MessageQueue);
+ipc_node.send(data, sizeof(data)); // Send a message
+auto rec = ipc_node.receive();     // Receive messages
+```
+
+### Example (Linux)
 
 Two example programs are provided in the `examples` directory: `sender.cpp` and `receiver.cpp`.
 
@@ -65,3 +112,49 @@ make run_sender
 # At this time, the receiver can receive the message
 Received message: Hello, IPC!
 ```
+
+### Performance
+
+- Windows testing platform: 13th Gen Intel (R) Core (TM) i7-13700 (2.10 GHz)
+- Linux testing platform: Intel (R) Core (TM) Ultra 9 185H
+
+<table>
+<tr>
+<th rowspan="3">Communication latency / µs</th>
+<th colspan="2">Windows</th>
+<th>Linux</th>
+</tr>
+<tr>
+<th colspan="2">Named pipe</th>
+<th>Message queue</th>
+</tr>
+<tr>
+<th>MinGW</th>
+<th>MSVC</th>
+<th>GCC</th>
+</tr>
+<tr>
+<td align="center">Average</td>
+<td align="center">153.4</td>
+<td align="center">154.7</td>
+<td align="center">63.0</td>
+</tr>
+<tr>
+<td align="center">Median</td>
+<td align="center">137.7</td>
+<td align="center">136.7</td>
+<td align="center">61.4</td>
+</tr>
+<tr>
+<td align="center">P95</td>
+<td align="center">290.9</td>
+<td align="center">293.5</td>
+<td align="center">89.1</td>
+</tr>
+<tr>
+<td align="center">P99</td>
+<td align="center">366.9</td>
+<td align="center">350.3</td>
+<td align="center">119.5</td>
+</tr>
+</table>
