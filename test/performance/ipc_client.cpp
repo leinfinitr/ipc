@@ -25,13 +25,13 @@ int64_t current_timestamp()
 int main()
 {
     // Initialize separate channels for sending and receiving
-    #ifdef _WIN32
+#ifdef _WIN32
     ipc::node sender("ipc-latency-request", ipc::LinkType::Sender, ipc::ChannelType::NamedPipe);
     ipc::node receiver("ipc-latency-response", ipc::LinkType::Receiver, ipc::ChannelType::NamedPipe);
-    #else
+#else
     ipc::node sender("ipc-latency-request");
     ipc::node receiver("ipc-latency-response");
-    #endif
+#endif
 
     std::cout << "Connecting to IPC server..." << std::endl;
     std::cout << "Sending on channel: ipc-latency-request" << std::endl;

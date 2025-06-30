@@ -28,7 +28,7 @@ named_pipe::named_pipe(const std::string& name, LinkType ltype)
             pipe_name_.c_str(),
             PIPE_ACCESS_DUPLEX,
             PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT,
-            1, // Maximum instances
+            PIPE_UNLIMITED_INSTANCES, // Maximum instances
             BUFFER_SIZE, // Output buffer size
             BUFFER_SIZE, // Input buffer size
             0, // Default timeout
@@ -137,7 +137,7 @@ bool named_pipe::remove()
 void named_pipe::connect()
 {
     if (link_type_ == LinkType::Sender) {
-        ASSERT_RETURN(!WaitNamedPipeA(pipe_name_.c_str(), NMPWAIT_USE_DEFAULT_WAIT), , "No Named Pipe Accessible");
+        ASSERT_RETURN(!WaitNamedPipeA(pipe_name_.c_str(), NMPWAIT_USE_DEFAULT_WAIT), , "No Named Pipe Accessible, erro = %lu", GetLastError());
         pipe_ = CreateFileA(
             pipe_name_.c_str(),
             GENERIC_READ | GENERIC_WRITE,
