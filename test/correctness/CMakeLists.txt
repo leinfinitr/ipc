@@ -4,11 +4,15 @@ file(GLOB TEST_CORRECT_SCRS ${CMAKE_CURRENT_LIST_DIR}/*.cpp)
 add_executable(${PROJECT_NAME} ${TEST_CORRECT_SCRS})
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_options(${PROJECT_NAME} PRIVATE -g)
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-        ENABLE_EXPORTS ON
-        LINK_OPTIONS "-g"
-    )
+    if(MSVC)
+        add_compile_options(/Zi /Od)
+    else()
+        target_compile_options(${PROJECT_NAME} PRIVATE -g)
+        set_target_properties(${PROJECT_NAME} PROPERTIES
+            ENABLE_EXPORTS ON
+            LINK_OPTIONS "-g"
+        )
+    endif()
 endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE
