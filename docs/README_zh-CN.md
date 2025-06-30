@@ -27,12 +27,12 @@
 
 <table>
 <tr>
-<th rowspan="2">通信方式</th>
-<th colspan="2">操作系统</th>
+<th rowspan="2" align="center" class="vertical-center">通信方式</th>
+<th colspan="2" align="center">操作系统</th>
 </tr>
 <tr>
-<th>Windows</th>
-<th>Linux</th>
+<th align="center">Windows</th>
+<th align="center">Linux</th>
 </tr>
 <tr>
 <td align="center">命名管道</td>
@@ -120,18 +120,18 @@ Received message: Hello, IPC!
 
 <table>
 <tr>
-<th rowspan="3">通信延迟 / µs</th>
-<th colspan="2">Windows</th>
-<th>Linux</th>
+<th rowspan="3" align="center" class="vertical-center">通信延迟 / µs</th>
+<th colspan="2" align="center">Windows</th>
+<th align="center">Linux</th>
 </tr>
 <tr>
-<th colspan="2">命名管道</th>
-<th>消息队列</th>
+<th colspan="2" align="center">命名管道</th>
+<th align="center">消息队列</th>
 </tr>
 <tr>
-<th>MinGW</th>
-<th>MSVC</th>
-<th>GCC</th>
+<th align="center">MinGW</th>
+<th align="center">MSVC</th>
+<th align="center">GCC</th>
 </tr>
 <tr>
 <td align="center">平均值</td>

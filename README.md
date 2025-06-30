@@ -27,12 +27,12 @@ Run `/output/bin/IPC-test-correctness` to perform correctness testing. To perfor
 
 <table>
 <tr>
-<th rowspan="2">Communication method</th>
-<th colspan="2">OS</th>
+<th rowspan="2" align="center" class="vertical-center">Communication method</th>
+<th colspan="2" align="center">OS</th>
 </tr>
 <tr>
-<th>Windows</th>
-<th>Linux</th>
+<th align="center">Windows</th>
+<th align="center">Linux</th>
 </tr>
 <tr>
 <td align="center">Named pipe</td>
@@ -120,18 +120,18 @@ Received message: Hello, IPC!
 
 <table>
 <tr>
-<th rowspan="3">Communication latency / µs</th>
-<th colspan="2">Windows</th>
-<th>Linux</th>
+<th rowspan="3" align="center" class="vertical-center">Communication latency / µs</th>
+<th colspan="2" align="center">Windows</th>
+<th align="center">Linux</th>
 </tr>
 <tr>
-<th colspan="2">Named pipe</th>
-<th>Message queue</th>
+<th colspan="2" align="center">Named pipe</th>
+<th align="center">Message queue</th>
 </tr>
 <tr>
-<th>MinGW</th>
-<th>MSVC</th>
-<th>GCC</th>
+<th align="center">MinGW</th>
+<th align="center">MSVC</th>
+<th align="center">GCC</th>
 </tr>
 <tr>
 <td align="center">Average</td>
