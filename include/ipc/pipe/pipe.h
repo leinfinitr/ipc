@@ -16,7 +16,7 @@ public:
     bool send(const void* data, size_t data_size);
     std::shared_ptr<void> receive();
     bool remove();
-    void connect();
+    bool connect();
 
 private:
     HANDLE pipe_;

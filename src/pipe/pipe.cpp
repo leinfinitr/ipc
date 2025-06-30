@@ -9,9 +9,19 @@
 
 namespace pipe {
 
+// The name of the named pipeline follows the following format:
+// "\\<ServerName>\pipe\<PipeName>"
+// - ServerName can be the name of a remote computer or a dot (.) representing the local computer.
+// - PipeName is the name given to a pipeline, which can contain any character except for the back slash (\),
+//   and the length of the entire name string should be limited to 256 characters.
+//   Pipeline names are not sensitive to uppercase and lowercase letters.
+// Due to the inability of the server to create pipelines on remote hosts, the <ServerName> section can only be a single point.
+// The client can write <ServerName> as a dot or remote hostname.
+#define LOCAL_PIPI R"(\\.\pipe\)"
+
 named_pipe::named_pipe(const std::string& name, LinkType ltype)
     : pipe_(INVALID_HANDLE_VALUE)
-    , pipe_name_(R"(\\.\pipe\)" + name)
+    , pipe_name_(LOCAL_PIPI + name)
     , link_type_(ltype)
     , connected_(false)
 {
@@ -26,8 +36,8 @@ named_pipe::named_pipe(const std::string& name, LinkType ltype)
     case LinkType::Receiver:
         pipe_ = CreateNamedPipeA(
             pipe_name_.c_str(),
-            PIPE_ACCESS_DUPLEX,
-            PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT,
+            PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED, // OpenMode
+            PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, // PipeMode
             PIPE_UNLIMITED_INSTANCES, // Maximum instances
             BUFFER_SIZE, // Output buffer size
             BUFFER_SIZE, // Input buffer size
@@ -51,9 +61,9 @@ named_pipe::~named_pipe()
 
 bool named_pipe::send(const void* data, size_t data_size)
 {
-    if (!connected_)
-        connect();
+    ASSERT_RETURN(link_type_ == LinkType::Receiver, false, "Receiver can't send data");
     ASSERT_RETURN(!data, false, "Data is null");
+    ASSERT_RETURN(!connect(), false, "Connect failed in send");
 
     DWORD bytesWritten;
     while (true) {
@@ -85,8 +95,8 @@ bool named_pipe::send(const void* data, size_t data_size)
 
 std::shared_ptr<void> named_pipe::receive()
 {
-    if (!connected_)
-        connect();
+    ASSERT_RETURN(link_type_ == LinkType::Sender, nullptr, "Sender can't receive data");
+    ASSERT_RETURN(!connect(), false, "Connect failed in receive");
 
     char buffer[BUFFER_SIZE];
     DWORD bytesRead;
@@ -134,10 +144,13 @@ bool named_pipe::remove()
     return true;
 }
 
-void named_pipe::connect()
+bool named_pipe::connect()
 {
+    if (connected_)
+        return true;
+
     if (link_type_ == LinkType::Sender) {
-        ASSERT_RETURN(!WaitNamedPipeA(pipe_name_.c_str(), NMPWAIT_USE_DEFAULT_WAIT), , "No Named Pipe Accessible, erro = %lu", GetLastError());
+        ASSERT_RETURN(!WaitNamedPipeA(pipe_name_.c_str(), NMPWAIT_USE_DEFAULT_WAIT), false, "No Named Pipe Accessible, erro = %lu", GetLastError());
         pipe_ = CreateFileA(
             pipe_name_.c_str(),
             GENERIC_READ | GENERIC_WRITE,
@@ -147,7 +160,7 @@ void named_pipe::connect()
             0,
             NULL);
 
-        ASSERT_RETURN(pipe_ == INVALID_HANDLE_VALUE, , "CreateFileA failed, erro = %lu", GetLastError());
+        ASSERT_RETURN(pipe_ == INVALID_HANDLE_VALUE, false, "CreateFileA failed, erro = %lu", GetLastError());
         connected_ = true;
     }
 
@@ -165,6 +178,8 @@ void named_pipe::connect()
             connected_ = true;
         }
     }
+
+    return connected_;
 }
 
 } // namespace pipe

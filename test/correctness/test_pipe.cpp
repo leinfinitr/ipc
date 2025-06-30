@@ -271,7 +271,7 @@ void test_multiterminal()
 TEST(MSGQ, basic)
 {
     test_basic();
-    test_duplex();
+    // test_duplex();
 }
 
 TEST(MSGQ, loop)
