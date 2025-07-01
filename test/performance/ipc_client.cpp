@@ -13,7 +13,6 @@
 // Configuration
 const int NUM_ITERATIONS = 1000;
 const int WARMUP_ITERATIONS = 100;
-const int MSG_SIZE = 64; // Message size in bytes
 
 int64_t current_timestamp()
 {
@@ -37,18 +36,13 @@ int main()
     std::cout << "Sending on channel: ipc-latency-request" << std::endl;
     std::cout << "Receiving on channel: ipc-latency-response" << std::endl;
 
-    // Create a message buffer with timestamp
-    std::vector<char> buffer(MSG_SIZE);
+    const char* msg = "Hello, IPC";
 
     // Warmup
     std::cout << "Warming up for " << WARMUP_ITERATIONS << " iterations..." << std::endl;
     for (int i = 0; i < WARMUP_ITERATIONS; i++) {
-        // Create message with current timestamp
-        int64_t send_time = current_timestamp();
-        std::memcpy(buffer.data(), &send_time, sizeof(int64_t));
-
         // Send message
-        sender.send(buffer.data(), buffer.size());
+        sender.send(msg, strlen(msg) + 1);
 
         // Wait for reply
         auto reply = receiver.receive();
@@ -67,10 +61,9 @@ int main()
         // Create message with current timestamp
         std::this_thread::sleep_for(std::chrono::microseconds(1000));
         int64_t send_time = current_timestamp();
-        std::memcpy(buffer.data(), &send_time, sizeof(int64_t));
 
         // Send message
-        sender.send(buffer.data(), buffer.size());
+        sender.send(msg, strlen(msg) + 1);
 
         // Wait for reply
         auto reply = receiver.receive();
