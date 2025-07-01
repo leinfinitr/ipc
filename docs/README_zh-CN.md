@@ -53,7 +53,7 @@
 
 ### 使用方式
 
-#### 引入 IPC 库
+#### 引入静态库
 
 对于使用 CMake 构建的项目，可以通过以下方式引入：
 
@@ -66,6 +66,15 @@ set_target_properties(ipc PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES "${IPC_INCLUDE_DIR}"
 )
 
+target_link_libraries(your_target ipc)
+target_include_directories(your_target PRIVATE ${IPC_INCLUDE_DIR})
+```
+
+或者作为第三方库在 CMakeLists.txt 中直接使用：
+
+```cmake
+add_subdirectory(ipc EXCLUDE_FROM_ALL)
+set(IPC_INCLUDE_DIR "/path/to/ipc/include")
 target_link_libraries(your_target ipc)
 target_include_directories(your_target PRIVATE ${IPC_INCLUDE_DIR})
 ```
@@ -115,46 +124,57 @@ Received message: Hello, IPC!
 
 ### 性能
 
-- Windows 测试平台：13th Gen Intel(R) Core(TM) i7-13700(2.10 GHz)
-- Linux 测试平台：Intel(R) Core(TM) Ultra 9 185H
+- **Windows**: 13th Gen Intel (R) Core (TM) i7-13700 (2.10 GHz)
+- **Linux**: Intel (R) Core (TM) Ultra 9 185H
 
 <table>
 <tr>
-<th rowspan="3" align="center" class="vertical-center">通信延迟 / µs</th>
-<th colspan="2" align="center">Windows</th>
-<th align="center">Linux</th>
+<th rowspan="2" align="center" class="vertical-center">通信延迟 / µs</th>
+<th colspan="3" align="center">Windows(Named pipe)</th>
+<th colspan="2" align="center">Linux(Message queue)</th>
 </tr>
 <tr>
-<th colspan="2" align="center">命名管道</th>
-<th align="center">消息队列</th>
+<th align="center">ipc(1-1)</th>
+<th align="center">ipc(1-N)</th>
+<th align="center"><a href="https://github.com/mutouyun/cpp-ipc">cpp-ipc</a></th>
+<th align="center">ipc</th>
+<th align="center"><a href="https://github.com/mutouyun/cpp-ipc">cpp-ipc</a></th>
 </tr>
 <tr>
-<th align="center">MinGW</th>
-<th align="center">MSVC</th>
-<th align="center">GCC</th>
-</tr>
-<tr>
-<td align="center">平均值</td>
+<td align="center">Average</td>
 <td align="center">153.4</td>
-<td align="center">154.7</td>
-<td align="center">63.0</td>
+<td align="center">239.1</td>
+<td align="center">198.3</td>
+<td align="center">61.5</td>
+<td align="center">47.0</td>
 </tr>
 <tr>
-<td align="center">中位数</td>
+<td align="center">Median</td>
 <td align="center">137.7</td>
-<td align="center">136.7</td>
-<td align="center">61.4</td>
+<td align="center">229.9</td>
+<td align="center">179.5</td>
+<td align="center">54.0</td>
+<td align="center">45.9</td>
 </tr>
 <tr>
 <td align="center">P95</td>
 <td align="center">290.9</td>
-<td align="center">293.5</td>
+<td align="center">416.7</td>
+<td align="center">356.0</td>
 <td align="center">89.1</td>
+<td align="center">60.1</td>
 </tr>
 <tr>
 <td align="center">P99</td>
 <td align="center">366.9</td>
-<td align="center">350.3</td>
+<td align="center">523.4</td>
+<td align="center">450.7</td>
 <td align="center">119.5</td>
+<td align="center">79.1</td>
 </tr>
 </table>
+
+由于 Windows NamedPipe 不支持多个客户端同时连接一个服务端：
+
+- **ipc(1-1)**：使用默认一对一连接
+- **ipc(1-N)**：采用服务端多实例与线程分离的方式，允许单一 Receiver 同时连接多个 Sender

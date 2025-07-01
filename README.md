@@ -70,6 +70,15 @@ target_link_libraries(your_target ipc)
 target_include_directories(your_target PRIVATE ${IPC_INCLUDE_DIR})
 ```
 
+Alternatively, it can be used directly as a third-party library in CMakeLists.txt:
+
+```cmake
+add_subdirectory(ipc EXCLUDE_FROM_ALL)
+set(IPC_INCLUDE_DIR "/path/to/ipc/include")
+target_link_libraries(your_target ipc)
+target_include_directories(your_target PRIVATE ${IPC_INCLUDE_DIR})
+```
+
 #### Code Writing
 
 **Windows**: When creating IPC communication nodes, it is necessary to specify the node type as `Receiver` or `Sender`
@@ -115,46 +124,57 @@ Received message: Hello, IPC!
 
 ### Performance
 
-- Windows testing platform: 13th Gen Intel (R) Core (TM) i7-13700 (2.10 GHz)
-- Linux testing platform: Intel (R) Core (TM) Ultra 9 185H
+- **Windows**: 13th Gen Intel (R) Core (TM) i7-13700 (2.10 GHz)
+- **Linux**: Intel (R) Core (TM) Ultra 9 185H
 
 <table>
 <tr>
-<th rowspan="3" align="center" class="vertical-center">Communication latency / µs</th>
-<th colspan="2" align="center">Windows</th>
-<th align="center">Linux</th>
+<th rowspan="2" align="center" class="vertical-center">Communication latency / µs</th>
+<th colspan="3" align="center">Windows(Named pipe)</th>
+<th colspan="2" align="center">Linux(Message queue)</th>
 </tr>
 <tr>
-<th colspan="2" align="center">Named pipe</th>
-<th align="center">Message queue</th>
-</tr>
-<tr>
-<th align="center">MinGW</th>
-<th align="center">MSVC</th>
-<th align="center">GCC</th>
+<th align="center">ipc(1-1)</th>
+<th align="center">ipc(1-N)</th>
+<th align="center"><a href="https://github.com/mutouyun/cpp-ipc">cpp-ipc</a></th>
+<th align="center">ipc</th>
+<th align="center"><a href="https://github.com/mutouyun/cpp-ipc">cpp-ipc</a></th>
 </tr>
 <tr>
 <td align="center">Average</td>
 <td align="center">153.4</td>
-<td align="center">154.7</td>
-<td align="center">63.0</td>
+<td align="center">239.1</td>
+<td align="center">198.3</td>
+<td align="center">61.5</td>
+<td align="center">47.0</td>
 </tr>
 <tr>
 <td align="center">Median</td>
 <td align="center">137.7</td>
-<td align="center">136.7</td>
-<td align="center">61.4</td>
+<td align="center">229.9</td>
+<td align="center">179.5</td>
+<td align="center">54.0</td>
+<td align="center">45.9</td>
 </tr>
 <tr>
 <td align="center">P95</td>
 <td align="center">290.9</td>
-<td align="center">293.5</td>
+<td align="center">416.7</td>
+<td align="center">356.0</td>
 <td align="center">89.1</td>
+<td align="center">60.1</td>
 </tr>
 <tr>
 <td align="center">P99</td>
 <td align="center">366.9</td>
-<td align="center">350.3</td>
+<td align="center">523.4</td>
+<td align="center">450.7</td>
 <td align="center">119.5</td>
+<td align="center">79.1</td>
 </tr>
 </table>
+
+Due to Windows NamedPipe not supporting multiple clients connecting to a server simultaneously:
+
+- **IPC (1-1)**: Use default one-to-one connection
+- **IPC (1-N)**: Adopting a server-side multi instance and thread separation approach, allowing a single Receiver to connect to multiple Senders simultaneously
