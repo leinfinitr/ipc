@@ -1,6 +1,10 @@
 #pragma once
 
+#include <condition_variable>
+#include <queue>
+#include <thread>
 #include <windows.h>
+#include <atomic>
 
 #include "ipc/ipc.h"
 
@@ -16,13 +20,25 @@ public:
     bool send(const void* data, size_t data_size);
     std::shared_ptr<void> receive();
     bool remove();
-    bool connect();
 
 private:
-    HANDLE pipe_;
     std::string pipe_name_;
     LinkType link_type_;
-    bool connected_;
+    HANDLE stop_event_;
+
+    HANDLE send_pipe_;
+    bool send_connected_;
+
+    std::atomic<bool> recv_stop_flag_; // Determine whether the main thread has terminated
+    std::thread recv_thread_; // The main thread of the server
+    std::condition_variable queue_cv_; // Wake up the receive() upon receiving data
+    std::mutex queue_mutex_;
+    std::queue<std::shared_ptr<void>> recv_queue_;
+
     static const DWORD BUFFER_SIZE = 4096; // Default buffer size for named pipe communication
+
+    bool connect();
+    void recv_main();
+    void recv_handle_connection(HANDLE pipe);
 };
 } // namespace pipe
