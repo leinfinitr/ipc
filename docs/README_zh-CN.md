@@ -174,7 +174,7 @@ Received message: Hello, IPC!
 </tr>
 </table>
 
-由于 Windows NamedPipe 不支持多个客户端同时连接一个服务端：
+由于 Windows NamedPipe 不支持多个客户端同时连接一个服务端实例：
 
 - **ipc(1-1)**：使用默认一对一连接
-- **ipc(1-N)**：采用服务端多实例与线程分离的方式，允许单一 Receiver 同时连接多个 Sender
+- **ipc(1-N)**：采用服务端多实例与异步I/O的方式，允许单一 Receiver 同时连接多个 Sender

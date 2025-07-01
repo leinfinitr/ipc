@@ -174,7 +174,7 @@ Received message: Hello, IPC!
 </tr>
 </table>
 
-Due to Windows NamedPipe not supporting multiple clients connecting to a server simultaneously:
+Due to Windows NamedPipe not supporting multiple clients connecting to a server instance simultaneously:
 
 - **IPC (1-1)**: Use default one-to-one connection
-- **IPC (1-N)**: Adopting a server-side multi instance and thread separation approach, allowing a single Receiver to connect to multiple Senders simultaneously
+- **IPC (1-N)**: Adopting a server-side multi instance and overlapped I/O approach, allowing a single Receiver to connect to multiple Senders simultaneously
