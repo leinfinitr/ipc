@@ -18,6 +18,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         ${LIBIPC_INCLUDE_DIR}
         ${LIBIPC_INCLUDE_DIR}/msgq
     )
+
+    target_compile_options(msgq PRIVATE -fPIC)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     # pipe library
     file(GLOB_RECURSE PIPE_SRCS
@@ -62,6 +64,7 @@ target_include_directories(ipc PUBLIC
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_link_libraries(ipc PRIVATE msgq)
+    target_compile_options(ipc PRIVATE -fPIC)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     target_link_libraries(ipc PRIVATE pipe)
 endif()
