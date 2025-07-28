@@ -7,6 +7,7 @@ add_library(ipc STATIC ${IPC_SRCS})
 
 target_include_directories(ipc PUBLIC
     ${LIBIPC_INCLUDE_DIR}
+    ${LIBIPC_TOOLS_DIR}
 )
 
 # Enabling PIC allows it to be directly used when linked to dynamic libraries

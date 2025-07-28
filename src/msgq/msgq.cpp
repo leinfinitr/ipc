@@ -7,8 +7,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "ipc/assert.h"
 #include "ipc/msgq/msgq.h"
+#include "utils/assert.h"
 
 namespace msgq {
 

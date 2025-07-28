@@ -3,10 +3,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "ipc/assert.h"
 #include "ipc/ipc.h"
 #include "ipc/msgq/msgq.h"
 #include "ipc/pipe/pipe.h"
+#include "utils/assert.h"
 
 #ifndef _WIN32
 #include <sys/ipc.h> // For IPC_PRIVATE

@@ -7,8 +7,8 @@
 #include <string>
 #include <vector>
 
-#include "ipc/assert.h"
 #include "ipc/pipe/pipe.h"
+#include "utils/assert.h"
 
 namespace pipe {
 
