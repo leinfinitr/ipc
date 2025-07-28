@@ -13,6 +13,13 @@ if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
     add_compile_definitions(DEBUG)
 endif()
 
+if(MSVC)
+    # Overrides the default Debug compilation options of CMake,
+    # avoiding conflicts between /MTd(ipc) and /MDd(gtest).
+    set(CMAKE_C_FLAGS_DEBUG   "$ENV{CFLAGS}   /Od /Zi")
+    set(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} /Od /Zi")
+endif()
+
 add_subdirectory(src)
 
 if (BUILD_TEST)
