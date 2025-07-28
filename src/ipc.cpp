@@ -15,7 +15,7 @@
 
 namespace ipc {
 
-node::node(std::string name, LinkType ltype, ChannelType ctype)
+node::node(std::string name, NodeType ntype, ChannelType ctype)
     : name_(std::move(name))
 {
 #ifdef _WIN32
@@ -23,7 +23,7 @@ node::node(std::string name, LinkType ltype, ChannelType ctype)
     case ChannelType::MessageQueue:
         ASSERT_EXIT(true, "Message queue channel not implemented yet.");
     case ChannelType::NamedPipe:
-        channel_ = std::make_shared<pipe::named_pipe>(name_, ltype);
+        channel_ = std::make_shared<pipe::named_pipe>(name_, ntype);
         break;
     default:
         ASSERT_EXIT(true, "Unknown channel type");

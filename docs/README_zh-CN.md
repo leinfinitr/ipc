@@ -87,8 +87,8 @@ target_include_directories(your_target PRIVATE ${IPC_INCLUDE_DIR})
 #include <ipc/ipc.h>
 
 // 创建两个名为 "Wow" 的 IPC 节点，底层使用命名管道（Windows 默认值）
-ipc::node receiver("Wow", ipc::LinkType::Receiver, ipc::ChannelType::NamedPipe);
-ipc::node sender("Wow", ipc::LinkType::Sender);
+ipc::node receiver("Wow", ipc::NodeType::Receiver, ipc::ChannelType::NamedPipe);
+ipc::node sender("Wow", ipc::NodeType::Sender);
 auto rec = receiver.receive();    // 接收消息（会阻塞进程直至接收到消息）
 sender.send(data, sizeof(data));  // 发送消息
 ```

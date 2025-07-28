@@ -21,9 +21,9 @@ namespace pipe {
 // The client can write <ServerName> as a dot or remote hostname.
 #define LOCAL_PIPI R"(\\.\pipe\)"
 
-named_pipe::named_pipe(const std::string& name, LinkType ltype)
+named_pipe::named_pipe(const std::string& name, NodeType ntype)
     : pipe_name_(LOCAL_PIPI + name)
-    , link_type_(ltype)
+    , node_type_(ntype)
     , send_pipe_(INVALID_HANDLE_VALUE)
     , send_connected_(false)
     , recv_stop_flag_(false)
@@ -31,15 +31,15 @@ named_pipe::named_pipe(const std::string& name, LinkType ltype)
     stop_event_ = CreateEvent(NULL, TRUE, FALSE, NULL);
     ASSERT(stop_event_ == NULL, "CreateEvent failed");
 
-    switch (ltype) {
-    case LinkType::Unknown:
+    switch (ntype) {
+    case NodeType::Unknown:
         ASSERT_RETURN(true, , "Link type must be specified in named_pipe constructor");
         break;
-    case LinkType::Sender:
+    case NodeType::Sender:
         // Move connection establishment to send method
         // Prevent errors caused by not creating a receiver during initialization
         break;
-    case LinkType::Receiver:
+    case NodeType::Receiver:
         // Start the receiver thread
         recv_thread_ = std::thread(&named_pipe::recv_main, this);
         break;
@@ -56,7 +56,7 @@ named_pipe::~named_pipe()
 
 bool named_pipe::send(const void* data, size_t data_size)
 {
-    ASSERT_RETURN(link_type_ == LinkType::Receiver, false, "Receiver can't send data");
+    ASSERT_RETURN(node_type_ == NodeType::Receiver, false, "Receiver can't send data");
     ASSERT_RETURN(!data, false, "Data is null");
     ASSERT_RETURN(!connect(), false, "Connect failed in send");
 

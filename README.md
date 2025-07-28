@@ -87,8 +87,8 @@ target_include_directories(your_target PRIVATE ${IPC_INCLUDE_DIR})
 #include <ipc/ipc.h>
 
 // Create two IPC nodes named 'Wow', using named pipes at the bottom (Windows default)
-ipc::node receiver("Wow", ipc::LinkType::Receiver, ipc::ChannelType::NamedPipe);
-ipc::node sender("Wow", ipc::LinkType::Sender);
+ipc::node receiver("Wow", ipc::NodeType::Receiver, ipc::ChannelType::NamedPipe);
+ipc::node sender("Wow", ipc::NodeType::Sender);
 auto rec = receiver.receive();   // Receive message (will block the process until the message is received)
 sender.send(data, sizeof(data)); // Send a message
 ```

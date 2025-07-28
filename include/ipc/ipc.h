@@ -7,7 +7,7 @@
 
 namespace ipc {
 
-enum class LinkType {
+enum class NodeType {
     Unknown,
     Sender,
     Receiver
@@ -34,13 +34,13 @@ public:
 
 class node {
 public:
-    #ifdef _WIN32
-    node(std::string name, LinkType ltype = LinkType::Unknown, ChannelType ctype = ChannelType::NamedPipe);
-    #else
-    node(std::string name, LinkType ltype = LinkType::Unknown, ChannelType ctype = ChannelType::MessageQueue);
-    #endif
+#ifdef _WIN32
+    node(std::string name, NodeType ntype = NodeType::Unknown, ChannelType ctype = ChannelType::NamedPipe);
+#else
+    node(std::string name, NodeType ntype = NodeType::Unknown, ChannelType ctype = ChannelType::MessageQueue);
+#endif
     node(std::string name, ChannelType ctype)
-        : node(name, LinkType::Unknown, ctype)
+        : node(name, NodeType::Unknown, ctype)
     {
     }
     ~node();

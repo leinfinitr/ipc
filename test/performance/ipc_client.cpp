@@ -25,8 +25,8 @@ int main()
 {
     // Initialize separate channels for sending and receiving
 #ifdef _WIN32
-    ipc::node sender("ipc-latency-request", ipc::LinkType::Sender, ipc::ChannelType::NamedPipe);
-    ipc::node receiver("ipc-latency-response", ipc::LinkType::Receiver, ipc::ChannelType::NamedPipe);
+    ipc::node sender("ipc-latency-request", ipc::NodeType::Sender, ipc::ChannelType::NamedPipe);
+    ipc::node receiver("ipc-latency-response", ipc::NodeType::Receiver, ipc::ChannelType::NamedPipe);
 #else
     ipc::node sender("ipc-latency-request");
     ipc::node receiver("ipc-latency-response");

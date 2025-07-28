@@ -14,7 +14,7 @@ void test_basic()
     const char* msg = "Hello, IPC!";
 
     std::thread server_thread([msg]() {
-        ipc::node server_node("basic", ipc::LinkType::Receiver, ipc::ChannelType::NamedPipe);
+        ipc::node server_node("basic", ipc::NodeType::Receiver, ipc::ChannelType::NamedPipe);
         auto rec = server_node.receive();
         if (!rec) {
             fprintf(stderr, "Server failed to receive message\n");
@@ -27,7 +27,7 @@ void test_basic()
     // Ensure that the server is started and waiting for connection
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    ipc::node client_node("basic", ipc::LinkType::Sender, ipc::ChannelType::NamedPipe);
+    ipc::node client_node("basic", ipc::NodeType::Sender, ipc::ChannelType::NamedPipe);
     // +1 for null terminator
     // In some versions of compilers and dynamic library dependencies, errors may occur if there is no "+ 1" for strlen
     // But sometimes even without "+ 1", there won't be any errors
@@ -41,7 +41,7 @@ void test_loop()
     const char* msg = "Hello, IPC";
 
     std::thread server_thread([msg]() {
-        ipc::node server_node("loop", ipc::LinkType::Receiver, ipc::ChannelType::NamedPipe);
+        ipc::node server_node("loop", ipc::NodeType::Receiver, ipc::ChannelType::NamedPipe);
         for (int i = 0; i < 100; ++i) {
             auto rec = server_node.receive();
             if (!rec) {
@@ -56,7 +56,7 @@ void test_loop()
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    ipc::node client_node("loop", ipc::LinkType::Sender, ipc::ChannelType::NamedPipe);
+    ipc::node client_node("loop", ipc::NodeType::Sender, ipc::ChannelType::NamedPipe);
     for (int i = 0; i < 100; ++i) {
         std::string full_msg = std::string(msg) + " - Message #" + std::to_string(i + 1);
         EXPECT_TRUE(client_node.send(full_msg.c_str(), full_msg.size() + 1));
@@ -86,7 +86,7 @@ void test_struct()
     strcpy_s(msg.mtext, "Hello, IPC with struct!");
 
     std::thread server_thread([msg]() {
-        ipc::node server_node("struct", ipc::LinkType::Receiver, ipc::ChannelType::NamedPipe);
+        ipc::node server_node("struct", ipc::NodeType::Receiver, ipc::ChannelType::NamedPipe);
         auto rec = server_node.receive();
         if (!rec) {
             fprintf(stderr, "Server failed to receive message\n");
@@ -103,7 +103,7 @@ void test_struct()
     // Ensure that the server is started and waiting for connection
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    ipc::node client_node("struct", ipc::LinkType::Sender, ipc::ChannelType::NamedPipe);
+    ipc::node client_node("struct", ipc::NodeType::Sender, ipc::ChannelType::NamedPipe);
     EXPECT_TRUE(client_node.send(&msg, sizeof(msg)));
 
     server_thread.join();
@@ -128,7 +128,7 @@ void test_class()
     MyClass obj(1, "Test Class", 3.14);
 
     std::thread server_thread([obj]() {
-        ipc::node server_node("class", ipc::LinkType::Receiver, ipc::ChannelType::NamedPipe);
+        ipc::node server_node("class", ipc::NodeType::Receiver, ipc::ChannelType::NamedPipe);
         auto rec = server_node.receive();
         if (!rec) {
             fprintf(stderr, "Server failed to receive message\n");
@@ -143,7 +143,7 @@ void test_class()
     // Ensure that the server is started and waiting for connection
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    ipc::node client_node("class", ipc::LinkType::Sender, ipc::ChannelType::NamedPipe);
+    ipc::node client_node("class", ipc::NodeType::Sender, ipc::ChannelType::NamedPipe);
     EXPECT_TRUE(client_node.send(&obj, sizeof(MyClass)));
 
     server_thread.join();
@@ -177,7 +177,7 @@ void test_subclass()
     Derived obj(1, "Test Subclass", 2.718);
 
     std::thread server_thread([obj]() {
-        ipc::node server_node("subclass", ipc::LinkType::Receiver, ipc::ChannelType::NamedPipe);
+        ipc::node server_node("subclass", ipc::NodeType::Receiver, ipc::ChannelType::NamedPipe);
         auto rec = server_node.receive();
         if (!rec) {
             fprintf(stderr, "Server failed to receive message\n");
@@ -192,7 +192,7 @@ void test_subclass()
     // Ensure that the server is started and waiting for connection
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    ipc::node client_node("subclass", ipc::LinkType::Sender, ipc::ChannelType::NamedPipe);
+    ipc::node client_node("subclass", ipc::NodeType::Sender, ipc::ChannelType::NamedPipe);
     EXPECT_TRUE(client_node.send(&obj, sizeof(Derived)));
 
     server_thread.join();
@@ -203,7 +203,7 @@ void test_multiterminal()
     const char* msg = "Hello, IPC";
 
     std::thread client_thread_1([msg]() {
-        ipc::node client_node_1("multiterminal", ipc::LinkType::Sender, ipc::ChannelType::NamedPipe);
+        ipc::node client_node_1("multiterminal", ipc::NodeType::Sender, ipc::ChannelType::NamedPipe);
         std::string full_msg = std::string(msg) + " - Message #1";
 
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -211,7 +211,7 @@ void test_multiterminal()
     });
 
     std::thread client_thread_2([msg]() {
-        ipc::node client_node_2("multiterminal", ipc::LinkType::Sender, ipc::ChannelType::NamedPipe);
+        ipc::node client_node_2("multiterminal", ipc::NodeType::Sender, ipc::ChannelType::NamedPipe);
         std::string full_msg = std::string(msg) + " - Message #2";
 
         std::this_thread::sleep_for(std::chrono::milliseconds(150));
@@ -219,14 +219,14 @@ void test_multiterminal()
     });
 
     std::thread client_thread_3([msg]() {
-        ipc::node client_node_3("multiterminal", ipc::LinkType::Sender, ipc::ChannelType::NamedPipe);
+        ipc::node client_node_3("multiterminal", ipc::NodeType::Sender, ipc::ChannelType::NamedPipe);
         std::string full_msg = std::string(msg) + " - Message #3";
 
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
         EXPECT_TRUE(client_node_3.send(full_msg.c_str(), full_msg.size() + 1));
     });
 
-    ipc::node server_node("multiterminal", ipc::LinkType::Receiver, ipc::ChannelType::NamedPipe);
+    ipc::node server_node("multiterminal", ipc::NodeType::Receiver, ipc::ChannelType::NamedPipe);
     for (int i = 0; i < 3; ++i) {
         auto rec = server_node.receive();
         if (!rec) {

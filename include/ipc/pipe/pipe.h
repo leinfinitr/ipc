@@ -1,10 +1,10 @@
 #pragma once
 
+#include <atomic>
 #include <condition_variable>
 #include <queue>
 #include <thread>
 #include <windows.h>
-#include <atomic>
 
 #include "ipc/ipc.h"
 
@@ -14,7 +14,7 @@ namespace pipe {
 
 class named_pipe : public Channel {
 public:
-    named_pipe(const std::string& name, LinkType ltype);
+    named_pipe(const std::string& name, NodeType ntype);
     ~named_pipe();
 
     bool send(const void* data, size_t data_size);
@@ -23,7 +23,7 @@ public:
 
 private:
     std::string pipe_name_;
-    LinkType link_type_;
+    NodeType node_type_;
     HANDLE stop_event_;
 
     HANDLE send_pipe_;
