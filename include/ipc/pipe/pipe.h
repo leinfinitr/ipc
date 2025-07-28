@@ -1,5 +1,6 @@
 #pragma once
 
+#ifdef _WIN32
 #include <atomic>
 #include <condition_variable>
 #include <queue>
@@ -42,3 +43,4 @@ private:
     void recv_handle_connection(HANDLE pipe);
 };
 } // namespace pipe
+#endif // _WIN32

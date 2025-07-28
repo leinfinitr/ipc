@@ -1,3 +1,4 @@
+#ifndef _WIN32
 #include <memory>
 #include <stdio.h>
 #include <stdlib.h>
@@ -103,3 +104,4 @@ bool message_queue::remove()
 }
 
 } // namespace msgq
+#endif // _WIN32

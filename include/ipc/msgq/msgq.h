@@ -1,5 +1,6 @@
 #pragma once
 
+#ifndef _WIN32
 #include <cstddef>
 #include <cstdint>
 #include <sys/msg.h>
@@ -32,3 +33,4 @@ private:
     };
 };
 } // namespace msgq
+#endif // _WIN32

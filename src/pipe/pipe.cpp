@@ -1,3 +1,4 @@
+#ifdef _WIN32
 #include <atomic>
 #include <memory>
 #include <stdio.h>
@@ -314,3 +315,4 @@ bool named_pipe::connect()
 }
 
 } // namespace pipe
+#endif // _WIN32

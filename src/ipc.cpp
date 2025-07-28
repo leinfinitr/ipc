@@ -5,12 +5,11 @@
 
 #include "ipc/assert.h"
 #include "ipc/ipc.h"
-
-#ifdef _WIN32
-#include "ipc/pipe/pipe.h"
-#else
 #include "ipc/msgq/msgq.h"
-#include <sys/ipc.h>
+#include "ipc/pipe/pipe.h"
+
+#ifndef _WIN32
+#include <sys/ipc.h> // For IPC_PRIVATE
 #endif
 
 namespace ipc {
