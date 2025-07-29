@@ -7,7 +7,7 @@ set(LIBIPC_PROJECT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(LIBIPC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(LIBIPC_TOOLS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tools)
 
-if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     # Add predefined macros to the compiler
     # These macros will be added to the source code
     add_compile_definitions(DEBUG)
