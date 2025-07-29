@@ -7,6 +7,7 @@
 #include "ipc/msgq/msgq.h"
 #include "ipc/pipe/pipe.h"
 #include "utils/assert.h"
+#include "utils/log.h"
 
 #ifndef _WIN32
 #include <sys/ipc.h> // For IPC_PRIVATE
@@ -16,31 +17,32 @@ namespace ipc {
 
 node::node(std::string name, NodeType ntype, ChannelType ctype)
     : name_(std::move(name))
+    , node_type_(ntype)
 {
 #ifdef _WIN32
     switch (ctype) {
     case ChannelType::MessageQueue:
         ASSERT_EXIT(true, "Message queue channel not implemented yet.");
     case ChannelType::NamedPipe:
-        channel_ = std::make_shared<pipe::named_pipe>(name_, ntype);
+        channel_ = std::make_shared<pipe::named_pipe>(name, ntype);
         break;
     default:
-        ASSERT_EXIT(true, "Unknown channel type");
+        channel_ = std::make_shared<pipe::named_pipe>(name, ntype);
     }
 #else
     std::hash<std::string> hasher;
-    size_t hash = hasher(name_);
+    size_t hash = hasher(name);
     key_t key = static_cast<key_t>(hash & 0xFFFFFFFF);
     ASSERT_EXIT(key == IPC_PRIVATE, "Generated key is IPC_PRIVATE, which is invalid");
 
     switch (ctype) {
     case ChannelType::MessageQueue:
-        channel_ = std::make_shared<msgq::message_queue>(key);
+        channel_ = std::make_shared<msgq::message_queue>(name, ntype, key);
         break;
     case ChannelType::NamedPipe:
         ASSERT_EXIT(true, "Named pipe channel not implemented yet.");
     default:
-        ASSERT_EXIT(true, "Unknown channel type");
+        channel_ = std::make_shared<msgq::message_queue>(name, ntype, key);
     }
 #endif
 }
@@ -52,19 +54,18 @@ node::~node()
 
 bool node::send(void const* data, size_t data_size)
 {
-    if (channel_) {
-        return channel_->send(data, data_size);
-    } else
-        ASSERT_RETURN(true, false, "Channel not initialized");
+    ASSERT_RETURN(!channel_, false, "Channel not initialized");
+    ASSERT_RETURN(node_type_ != NodeType::Sender, false, "Cannot send data from a Receiver node");
+
+    return channel_->send(data, data_size);
 }
 
 std::shared_ptr<void> node::receive()
 {
-    if (channel_) {
-        return channel_->receive();
-    } else {
-        ASSERT_RETURN(true, nullptr, "Channel not initialized");
-    }
+    ASSERT_RETURN(!channel_, nullptr, "Channel not initialized");
+    ASSERT_RETURN(node_type_ != NodeType::Receiver, nullptr, "Cannot receive data from a Sender node");
+
+    return channel_->receive();
 }
 
 bool node::remove()

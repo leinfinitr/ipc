@@ -8,12 +8,12 @@
 namespace ipc {
 
 enum class NodeType {
-    Unknown,
     Sender,
     Receiver
 };
 
 enum class ChannelType {
+    Unknown,
     MessageQueue,
     NamedPipe
 };
@@ -34,15 +34,7 @@ public:
 
 class node {
 public:
-#ifdef _WIN32
-    node(std::string name, NodeType ntype = NodeType::Unknown, ChannelType ctype = ChannelType::NamedPipe);
-#else
-    node(std::string name, NodeType ntype = NodeType::Unknown, ChannelType ctype = ChannelType::MessageQueue);
-#endif
-    node(std::string name, ChannelType ctype)
-        : node(name, NodeType::Unknown, ctype)
-    {
-    }
+    node(std::string name, NodeType ntype, ChannelType ctype = ChannelType::Unknown);
     ~node();
 
     // Disable copy constructor and assignment operator
@@ -56,7 +48,8 @@ public:
     bool remove();
 
 private:
-    std::string name_; // Name of the IPC node
+    const std::string name_; // Name of the IPC node
+    const NodeType node_type_; // Type of the node (Sender or Receiver)
     std::shared_ptr<Channel> channel_; // Pointer to the underlying IPC channel
 };
 

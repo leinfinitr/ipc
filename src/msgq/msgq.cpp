@@ -9,22 +9,39 @@
 
 #include "ipc/msgq/msgq.h"
 #include "utils/assert.h"
+#include "utils/log.h"
 
 namespace msgq {
 
-message_queue::message_queue(key_t key)
-    : msgid(-1)
+message_queue::message_queue(std::string name, NodeType ntype, key_t key)
+    : msgq_name_(std::move(name))
+    , node_type_(ntype)
 {
-    msgid = msgget(key, IPC_EXCL | IPC_CREAT | 0666);
-    if (msgid == -1) {
-        msgid = msgget(key, IPC_CREAT | 0666);
-        ASSERT_EXIT(msgid == -1, "msgget fail");
-        create_flag = false;
+    switch (ntype) {
+    case NodeType::Receiver:
+        // IPC_CREAT: create the message queue if it does not exist
+        // IPC_EXCL: fail if key exists, must be used together with IPC_CREAT
+        // Octal number determines the access permissions to the message queue
+        // 6 (110 binary) represents read and write permissions (4 read + 2 write)
+        // 0666 indicates that all users (owners, groups, and others) can read and write to this message queue
+        msgid_ = msgget(key, IPC_EXCL | IPC_CREAT | 0666);
+        // -1 indicates that msgq already exists
+        // But only one receiver can exist for a message queue
+        ASSERT_EXIT(msgid_ == -1, "Receiver of node %s already exists", msgq_name_.c_str());
+        break;
+    case NodeType::Sender:
+        msgid_ = msgget(key, 0666);
+        ASSERT_EXIT(msgid_ == -1, "Receiver of node %s does not exist", msgq_name_.c_str());
+        break;
+    default:
+        ASSERT_EXIT(true, "Unknown NodeType %d for node %s", static_cast<int>(ntype), msgq_name_.c_str());
+        break;
     }
 
+    // Get the maximum message size for this queue
     struct msqid_ds queue_info;
-    ASSERT_EXIT(msgctl(msgid, IPC_STAT, &queue_info) == -1, "msgctl(IPC_STAT) fail");
-    max_msg_size = queue_info.msg_qbytes;
+    ASSERT_EXIT(msgctl(msgid_, IPC_STAT, &queue_info) == -1, "msgctl(IPC_STAT) fail");
+    max_msg_size_ = queue_info.msg_qbytes;
 }
 
 message_queue::~message_queue()
@@ -34,13 +51,10 @@ message_queue::~message_queue()
 
 bool message_queue::send(const void* data, size_t data_size)
 {
-    if (!data) {
-        perror("Data is null\n");
-        return false;
-    }
+    ASSERT_RETURN(!data, false, "Data is null");
 
     size_t total_size = sizeof(msg) + data_size;
-    ASSERT_RETURN(total_size > max_msg_size, false, "Data size %zu exceeds maximum message size %zu", data_size, max_msg_size);
+    ASSERT_RETURN(total_size > max_msg_size_, false, "Data size %zu exceeds maximum message size %zu", data_size, max_msg_size_);
 
     msg* message = static_cast<msg*>(malloc(total_size));
     ASSERT_RETURN(!message, false, "malloc fail");
@@ -49,8 +63,8 @@ bool message_queue::send(const void* data, size_t data_size)
     message->size = data_size;
     memcpy(message->data, data, data_size);
 
-    if (msgsnd(msgid, message, total_size, 0) == -1) {
-        perror("msgsnd fail");
+    if (msgsnd(msgid_, message, total_size, 0) == -1) {
+        ASSERT(true, "msgsnd fail");
         free(message);
         return false;
     }
@@ -61,20 +75,19 @@ bool message_queue::send(const void* data, size_t data_size)
 
 std::shared_ptr<void> message_queue::receive()
 {
-    std::unique_ptr<char[]> buffer(new char[max_msg_size]);
+    std::unique_ptr<char[]> buffer(new char[max_msg_size_]);
     ASSERT_RETURN(!buffer, nullptr, "malloc fail");
 
-    ssize_t received = msgrcv(msgid, buffer.get(), max_msg_size, 0, 0);
+    ssize_t received = msgrcv(msgid_, buffer.get(), max_msg_size_, 0, 0);
     if (received == -1) {
         switch (errno) {
         case EINTR:
             // Interrupted by a signal
-            printf("[ipc/msgq] msgrcv interrupted by signal\n");
-            break;
+            LOG_INFO("msgrcv interrupted by signal\n");
+            return nullptr;
         default:
-            perror("msgrcv fail");
+            ASSERT_RETURN(true, nullptr, "msgrcv fail");
         }
-        return nullptr;
     }
 
     msg* message = reinterpret_cast<msg*>(buffer.get());
@@ -89,16 +102,9 @@ std::shared_ptr<void> message_queue::receive()
 
 bool message_queue::remove()
 {
-    if (create_flag) {
-        if (msgctl(msgid, IPC_RMID, nullptr) == -1) {
-            perror("msgctl(IPC_RMID) fail");
-            return false;
-        }
-        msgid = -1; // Reset msgid to indicate the queue has been removed
-        create_flag = false; // Mark the queue as no longer created by this instance
-    } else {
-        // If the queue was not created by this instance, we do not remove it.
-        // This is to avoid removing a queue that might be used by other processes.
+    if (node_type_ == NodeType::Receiver) {
+        ASSERT_RETURN(msgctl(msgid_, IPC_RMID, nullptr) == -1, false, "msgctl(IPC_RMID) fail");
+        msgid_ = -1; // Reset msgid_ to indicate the queue has been removed
     }
     return true;
 }

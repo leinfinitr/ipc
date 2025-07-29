@@ -13,7 +13,7 @@ namespace msgq {
 
 class message_queue : public Channel {
 public:
-    message_queue(key_t key);
+    message_queue(std::string name, NodeType ntype, key_t key);
     ~message_queue();
 
     bool send(const void* data, size_t data_size = 0) override;
@@ -21,11 +21,13 @@ public:
     bool remove() override;
 
 private:
-    static constexpr long MESSAGE_TYPE = 1;
-    int msgid;
-    msglen_t max_msg_size = 0;
-    bool create_flag = true;
+    const std::string msgq_name_;
+    const NodeType node_type_;
 
+    int msgid_ = -1;
+    msglen_t max_msg_size_ = 0;
+
+    static constexpr long MESSAGE_TYPE = 1;
     struct msg {
         long mtype; // Message type, required by System V communication standards
         size_t size;
