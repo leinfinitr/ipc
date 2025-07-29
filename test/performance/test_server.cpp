@@ -22,7 +22,7 @@ int main()
 
         if (!request) {
             std::cout << "Error receiving message" << std::endl;
-            continue;
+            break;
         }
         // Process the received message
         char* msg = static_cast<char*>(request.get());

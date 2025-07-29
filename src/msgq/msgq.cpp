@@ -69,12 +69,12 @@ bool message_queue::send(const void* data, size_t data_size)
 {
     if (msgid_ == -1) {
         msgid_ = msgget(key_, 0666);
-        ASSERT_EXIT(msgid_ == -1, "Receiver of node '%s' (key: 0x%x) does not exist", msgq_name_.c_str(), key_);
+        ASSERT_RETURN(msgid_ == -1, false, "Receiver of node '%s' (key: 0x%x) does not exist", msgq_name_.c_str(), key_);
         LOG_DEBUG("Sender (MessageQueue) '%s' (key: 0x%x) created with ID %d", msgq_name_.c_str(), key_, msgid_);
 
         // Get the maximum message size for this queue
         struct msqid_ds queue_info;
-        ASSERT_EXIT(msgctl(msgid_, IPC_STAT, &queue_info) == -1, "msgctl(IPC_STAT) fail");
+        ASSERT_RETURN(msgctl(msgid_, IPC_STAT, &queue_info) == -1, false, "msgctl(IPC_STAT) fail");
         max_msg_size_ = queue_info.msg_qbytes;
     }
 
