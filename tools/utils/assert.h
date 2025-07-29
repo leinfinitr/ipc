@@ -1,31 +1,32 @@
 #pragma once
 
 #ifndef _WIN32
-#define ASSERT(expr, format, ...)                                    \
-    do {                                                             \
-        if (static_cast<bool>(expr)) {                               \
-            fprintf(stderr, "Error: %s(%d): " format ": %s\n",       \
-                __FILE__, __LINE__, ##__VA_ARGS__, strerror(errno)); \
-        }                                                            \
+#define ASSERT(expr, format, ...)                                           \
+    do {                                                                    \
+        if (static_cast<bool>(expr)) {                                      \
+            fprintf(stderr, "[IPC Error: %s(%d)] " format ": (%d)%s\n",     \
+                __FILE__, __LINE__, ##__VA_ARGS__, errno, strerror(errno)); \
+        }                                                                   \
     } while (0)
 
-#define ASSERT_EXIT(expr, format, ...)                               \
-    do {                                                             \
-        if (static_cast<bool>(expr)) {                               \
-            fprintf(stderr, "Error: %s(%d): " format ": %s\n",       \
-                __FILE__, __LINE__, ##__VA_ARGS__, strerror(errno)); \
-            exit(EXIT_FAILURE);                                      \
-        }                                                            \
+#define ASSERT_RETURN(expr, ret, format, ...)                               \
+    do {                                                                    \
+        if (static_cast<bool>(expr)) {                                      \
+            fprintf(stderr, "[IPC Error: %s(%d)] " format ": (%d)%s\n",     \
+                __FILE__, __LINE__, ##__VA_ARGS__, errno, strerror(errno)); \
+            return ret;                                                     \
+        }                                                                   \
     } while (0)
 
-#define ASSERT_RETURN(expr, ret, format, ...)                        \
-    do {                                                             \
-        if (static_cast<bool>(expr)) {                               \
-            fprintf(stderr, "Error: %s(%d): " format ": %s\n",       \
-                __FILE__, __LINE__, ##__VA_ARGS__, strerror(errno)); \
-            return ret;                                              \
-        }                                                            \
+#define ASSERT_EXIT(expr, format, ...)                                      \
+    do {                                                                    \
+        if (static_cast<bool>(expr)) {                                      \
+            fprintf(stderr, "[IPC Fault: %s(%d)] " format ": (%d)%s\n",     \
+                __FILE__, __LINE__, ##__VA_ARGS__, errno, strerror(errno)); \
+            exit(EXIT_FAILURE);                                             \
+        }                                                                   \
     } while (0)
+
 #else
 #include <string>
 #include <windows.h>
@@ -50,32 +51,33 @@ inline std::string win_strerror(DWORD errnum)
     return message;
 }
 
-#define ASSERT(expr, format, ...)                                      \
-    do {                                                               \
-        if (static_cast<bool>(expr)) {                                 \
-            fprintf(stderr, "%s(%d): " format " : Error %lu %s",       \
-                __FILE__, __LINE__, ##__VA_ARGS__,                     \
-                GetLastError(), win_strerror(GetLastError()).c_str()); \
-        }                                                              \
+#define ASSERT(expr, format, ...)                                       \
+    do {                                                                \
+        if (static_cast<bool>(expr)) {                                  \
+            fprintf(stderr, "[IPC Error: %s(%d)] " format " : (%lu)%s", \
+                __FILE__, __LINE__, ##__VA_ARGS__,                      \
+                GetLastError(), win_strerror(GetLastError()).c_str());  \
+        }                                                               \
     } while (0)
 
-#define ASSERT_EXIT(expr, format, ...)                                 \
-    do {                                                               \
-        if (static_cast<bool>(expr)) {                                 \
-            fprintf(stderr, "%s(%d): " format " : Error %lu %s",       \
-                __FILE__, __LINE__, ##__VA_ARGS__,                     \
-                GetLastError(), win_strerror(GetLastError()).c_str()); \
-            exit(EXIT_FAILURE);                                        \
-        }                                                              \
+#define ASSERT_RETURN(expr, ret, format, ...)                           \
+    do {                                                                \
+        if (static_cast<bool>(expr)) {                                  \
+            fprintf(stderr, "[IPC Error: %s(%d)] " format " : (%lu)%s", \
+                __FILE__, __LINE__, ##__VA_ARGS__,                      \
+                GetLastError(), win_strerror(GetLastError()).c_str());  \
+            return ret;                                                 \
+        }                                                               \
     } while (0)
 
-#define ASSERT_RETURN(expr, ret, format, ...)                          \
-    do {                                                               \
-        if (static_cast<bool>(expr)) {                                 \
-            fprintf(stderr, "%s(%d): " format " : Error %lu %s",       \
-                __FILE__, __LINE__, ##__VA_ARGS__,                     \
-                GetLastError(), win_strerror(GetLastError()).c_str()); \
-            return ret;                                                \
-        }                                                              \
+#define ASSERT_EXIT(expr, format, ...)                                  \
+    do {                                                                \
+        if (static_cast<bool>(expr)) {                                  \
+            fprintf(stderr, "[IPC Fault: %s(%d)] " format " : (%lu)%s", \
+                __FILE__, __LINE__, ##__VA_ARGS__,                      \
+                GetLastError(), win_strerror(GetLastError()).c_str());  \
+            exit(EXIT_FAILURE);                                         \
+        }                                                               \
     } while (0)
+
 #endif
