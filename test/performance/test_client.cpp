@@ -36,19 +36,27 @@ int main()
     std::cout << "Sending on channel: ipc-latency-request" << std::endl;
     std::cout << "Receiving on channel: ipc-latency-response" << std::endl;
 
-    const char* msg = "Hello, IPC";
+    int random = rand() % 1000;
+    std::string base_msg = "IPC " + std::to_string(random);
 
     // Warmup
     std::cout << "Warming up for " << WARMUP_ITERATIONS << " iterations..." << std::endl;
     for (int i = 0; i < WARMUP_ITERATIONS; i++) {
         // Send message
-        sender.send(msg, strlen(msg) + 1);
+        std::string msg = base_msg + " - Warmup #" + std::to_string(i + 1);
+        sender.send(msg.c_str(), msg.size() + 1);
 
         // Wait for reply
         auto reply = receiver.receive();
         if (!reply) {
             std::cerr << "Error receiving reply during warmup" << std::endl;
             continue;
+        }
+
+        // Check if the reply matches the sent message
+        const char* res = static_cast<const char*>(reply.get());
+        if (strcmp(res, msg.c_str()) != 0) {
+            std::cerr << "Warmup message mismatch: expected '" << msg << "', got '" << res << "'" << std::endl;
         }
     }
 
@@ -58,12 +66,12 @@ int main()
 
     std::cout << "Running latency test for " << NUM_ITERATIONS << " iterations..." << std::endl;
     for (int i = 0; i < NUM_ITERATIONS; i++) {
-        // Create message with current timestamp
-        std::this_thread::sleep_for(std::chrono::microseconds(1000));
+        // Create message
+        std::string msg = base_msg + " - Test #" + std::to_string(i + 1);
         int64_t send_time = current_timestamp();
 
         // Send message
-        sender.send(msg, strlen(msg) + 1);
+        sender.send(msg.c_str(), msg.size() + 1);
 
         // Wait for reply
         auto reply = receiver.receive();
@@ -76,6 +84,12 @@ int main()
         int64_t recv_time = current_timestamp();
         double latency = static_cast<double>(recv_time - send_time);
         latencies.push_back(latency);
+
+        // Check if the reply matches the sent message
+        const char* res = static_cast<const char*>(reply.get());
+        if (strcmp(res, msg.c_str()) != 0) {
+            std::cerr << "Test message mismatch: expected '" << msg << "', got '" << res << "'" << std::endl;
+        }
     }
 
     // Calculate statistics
