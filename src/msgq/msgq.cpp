@@ -126,9 +126,9 @@ std::shared_ptr<void> message_queue::receive()
     }
 
 Interruption:
-    LOG_INFO("msgrcv interrupted by signal, exiting Receiver '%s' (key: 0x%x)", msgq_name_.c_str(), key_);
+    LOG_INFO("msgrcv interrupted by signal, remove Receiver '%s' (key: 0x%x)", msgq_name_.c_str(), key_);
     remove();
-    exit(EXIT_SUCCESS);
+    return nullptr;
 }
 
 bool message_queue::remove()
