@@ -16,7 +16,7 @@
 namespace ipc {
 
 node::node(std::string name, NodeType ntype, ChannelType ctype)
-    : name_(std::move(name))
+    : name_(name)
     , node_type_(ntype)
 {
 #ifdef _WIN32
