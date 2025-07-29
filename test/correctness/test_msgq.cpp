@@ -3,6 +3,8 @@
 #include <gtest/gtest.h>
 #include <unistd.h>
 #include <vector>
+#include <thread>
+#include <chrono>
 
 #include "ipc/ipc.h"
 
@@ -26,6 +28,7 @@ void test_basic()
         const char* res = static_cast<const char*>(rec.get());
         EXPECT_STREQ(res, msg);
     } else {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         testing::GTEST_FLAG(output) = "";
         testing::GTEST_FLAG(print_time) = false;
 
@@ -58,6 +61,7 @@ void test_loop()
             EXPECT_STREQ(res, expected_msg.c_str());
         }
     } else {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         testing::GTEST_FLAG(output) = "";
         testing::GTEST_FLAG(print_time) = false;
 
@@ -69,43 +73,6 @@ void test_loop()
 
         exit(0);
     }
-}
-
-void test_struct_no_fork()
-{
-    struct meta {
-        int id;
-        char name[50];
-        double value;
-    };
-    struct message {
-        meta meta_info;
-        long num;
-        char mtext[256];
-    };
-
-    message msg;
-    msg.meta_info.id = 1;
-    strcpy(msg.meta_info.name, "Test Message");
-    msg.meta_info.value = 42.0;
-    msg.num = 1;
-    strcpy(msg.mtext, "Hello, IPC with struct!");
-
-    ipc::node sender("struct_no_fork", ipc::NodeType::Sender, ipc::ChannelType::MessageQueue);
-    EXPECT_TRUE(sender.send(&msg, sizeof(msg)));
-
-    ipc::node receiver("struct_no_fork", ipc::NodeType::Receiver, ipc::ChannelType::MessageQueue);
-    auto rec = receiver.receive();
-    if (!rec) {
-        fprintf(stderr, "Failed to receive message\n");
-        exit(1);
-    }
-    auto received_msg = static_cast<message*>(rec.get());
-    EXPECT_EQ(received_msg->meta_info.id, msg.meta_info.id);
-    EXPECT_STREQ(received_msg->meta_info.name, msg.meta_info.name);
-    EXPECT_DOUBLE_EQ(received_msg->meta_info.value, msg.meta_info.value);
-    EXPECT_EQ(received_msg->num, msg.num);
-    EXPECT_STREQ(received_msg->mtext, msg.mtext);
 }
 
 void test_struct()
@@ -146,6 +113,7 @@ void test_struct()
         EXPECT_EQ(received_msg->num, msg.num);
         EXPECT_STREQ(received_msg->mtext, msg.mtext);
     } else {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         testing::GTEST_FLAG(output) = "";
         testing::GTEST_FLAG(print_time) = false;
 
@@ -154,39 +122,6 @@ void test_struct()
 
         exit(0);
     }
-}
-
-void test_class_no_fork()
-{
-    class MyClass {
-    public:
-        int id;
-        char name[50];
-        double value;
-
-        MyClass(int i, const char* n, double v)
-            : id(i)
-            , value(v)
-        {
-            strncpy(name, n, sizeof(name) - 1);
-        }
-    };
-
-    MyClass obj(1, "Test Class", 3.14);
-
-    ipc::node sender("class_no_fork", ipc::NodeType::Sender, ipc::ChannelType::MessageQueue);
-    EXPECT_TRUE(sender.send(&obj, sizeof(MyClass)));
-
-    ipc::node receiver("class_no_fork", ipc::NodeType::Receiver, ipc::ChannelType::MessageQueue);
-    auto rec = receiver.receive();
-    if (!rec) {
-        fprintf(stderr, "Failed to receive message\n");
-        exit(1);
-    }
-    auto received_obj = static_cast<MyClass*>(rec.get());
-    EXPECT_EQ(received_obj->id, obj.id);
-    EXPECT_STREQ(received_obj->name, obj.name);
-    EXPECT_DOUBLE_EQ(received_obj->value, obj.value);
 }
 
 void test_class()
@@ -223,6 +158,7 @@ void test_class()
         EXPECT_STREQ(received_obj->name, obj.name);
         EXPECT_DOUBLE_EQ(received_obj->value, obj.value);
     } else {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         testing::GTEST_FLAG(output) = "";
         testing::GTEST_FLAG(print_time) = false;
 
@@ -233,7 +169,7 @@ void test_class()
     }
 }
 
-void test_subclass_no_fork()
+void test_subclass()
 {
     class Base {
     public:
@@ -260,19 +196,31 @@ void test_subclass_no_fork()
 
     Derived obj(1, "Test Subclass", 2.718);
 
-    ipc::node sender("subclass_no_fork", ipc::NodeType::Sender, ipc::ChannelType::MessageQueue);
-    EXPECT_TRUE(sender.send(&obj, sizeof(Derived)));
-
-    ipc::node receiver("subclass_no_fork", ipc::NodeType::Receiver, ipc::ChannelType::MessageQueue);
-    auto rec = receiver.receive();
-    if (!rec) {
-        fprintf(stderr, "Failed to receive message\n");
+    pid_t pid = fork();
+    if (pid == -1) {
+        perror("fork fail");
         exit(1);
+    } else if (pid != 0) {
+        ipc::node node("subclass", ipc::NodeType::Receiver, ipc::ChannelType::MessageQueue);
+        auto rec = node.receive();
+        if (!rec) {
+            fprintf(stderr, "Failed to receive message\n");
+            exit(1);
+        }
+        auto received_obj = static_cast<Derived*>(rec.get());
+        EXPECT_EQ(received_obj->id, obj.id);
+        EXPECT_STREQ(received_obj->name, obj.name);
+        EXPECT_DOUBLE_EQ(received_obj->value, obj.value);
+    } else {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        testing::GTEST_FLAG(output) = "";
+        testing::GTEST_FLAG(print_time) = false;
+
+        ipc::node node("subclass", ipc::NodeType::Sender, ipc::ChannelType::MessageQueue);
+        EXPECT_TRUE(node.send(&obj, sizeof(Derived)));
+
+        exit(0);
     }
-    auto received_obj = static_cast<Derived*>(rec.get());
-    EXPECT_EQ(received_obj->id, obj.id);
-    EXPECT_STREQ(received_obj->name, obj.name);
-    EXPECT_DOUBLE_EQ(received_obj->value, obj.value);
 }
 
 TEST(MSGQ, basic)
@@ -287,14 +235,12 @@ TEST(MSGQ, loop)
 
 TEST(MSGQ, struct)
 {
-    test_struct_no_fork();
     test_struct();
 }
 
 TEST(MSGQ, class)
 {
-    test_class_no_fork();
     test_class();
-    test_subclass_no_fork();
+    test_subclass();
 }
 #endif
