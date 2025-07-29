@@ -23,6 +23,7 @@ public:
 private:
     const std::string msgq_name_;
     const NodeType node_type_;
+    const key_t key_;
 
     int msgid_ = -1;
     msglen_t max_msg_size_ = 0;

@@ -16,6 +16,7 @@ namespace msgq {
 message_queue::message_queue(std::string name, NodeType ntype, key_t key)
     : msgq_name_(name)
     , node_type_(ntype)
+    , key_(key)
 {
     switch (ntype) {
     case NodeType::Receiver:
@@ -28,22 +29,20 @@ message_queue::message_queue(std::string name, NodeType ntype, key_t key)
         // -1 indicates that msgq already exists
         // But only one receiver can exist for a message queue
         ASSERT_EXIT(msgid_ == -1, "Receiver of node '%s' (key: 0x%x) already exists", msgq_name_.c_str(), key);
+
+        struct msqid_ds queue_info;
+        ASSERT_EXIT(msgctl(msgid_, IPC_STAT, &queue_info) == -1, "msgctl(IPC_STAT) fail");
+        max_msg_size_ = queue_info.msg_qbytes;
         LOG_DEBUG("Receiver (MessageQueue) '%s' (key: 0x%x) created with ID %d", msgq_name_.c_str(), key, msgid_);
         break;
     case NodeType::Sender:
-        msgid_ = msgget(key, 0666);
-        ASSERT_EXIT(msgid_ == -1, "Receiver of node '%s' (key: 0x%x) does not exist", msgq_name_.c_str(), key);
-        LOG_DEBUG("Sender (MessageQueue) '%s' (key: 0x%x) created with ID %d", msgq_name_.c_str(), key, msgid_);
+        // Move connection establishment to send method
+        // Prevent errors caused by not creating a receiver during initialization
         break;
     default:
         ASSERT_EXIT(true, "Unknown NodeType %d for node %s", static_cast<int>(ntype), msgq_name_.c_str());
         break;
     }
-
-    // Get the maximum message size for this queue
-    struct msqid_ds queue_info;
-    ASSERT_EXIT(msgctl(msgid_, IPC_STAT, &queue_info) == -1, "msgctl(IPC_STAT) fail");
-    max_msg_size_ = queue_info.msg_qbytes;
 }
 
 message_queue::~message_queue()
@@ -53,6 +52,17 @@ message_queue::~message_queue()
 
 bool message_queue::send(const void* data, size_t data_size)
 {
+    if (msgid_ == -1) {
+        msgid_ = msgget(key_, 0666);
+        ASSERT_EXIT(msgid_ == -1, "Receiver of node '%s' (key: 0x%x) does not exist", msgq_name_.c_str(), key_);
+        LOG_DEBUG("Sender (MessageQueue) '%s' (key: 0x%x) created with ID %d", msgq_name_.c_str(), key_, msgid_);
+
+        // Get the maximum message size for this queue
+        struct msqid_ds queue_info;
+        ASSERT_EXIT(msgctl(msgid_, IPC_STAT, &queue_info) == -1, "msgctl(IPC_STAT) fail");
+        max_msg_size_ = queue_info.msg_qbytes;
+    }
+
     ASSERT_RETURN(!data, false, "Data is null");
 
     size_t total_size = sizeof(msg) + data_size;
@@ -66,6 +76,8 @@ bool message_queue::send(const void* data, size_t data_size)
     memcpy(message->data, data, data_size);
 
     if (msgsnd(msgid_, message, total_size, 0) == -1) {
+        // Fail reasons:
+        // 1. Receiver restart makes the msgid_ invalid
         ASSERT(true, "msgsnd fail");
         free(message);
         return false;
