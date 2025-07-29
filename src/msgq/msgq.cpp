@@ -1,5 +1,7 @@
 #ifndef _WIN32
+#include <atomic>
 #include <memory>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,11 +15,24 @@
 
 namespace msgq {
 
+// Global flag to indicate if the program is interrupted by a signal
+static std::atomic<bool> g_interrupted { false };
+static void handle_interrupt(int signal)
+{
+    LOG_DEBUG("Received signal %d, setting interrupted flag", signal);
+    g_interrupted.store(true);
+}
+
 message_queue::message_queue(std::string name, NodeType ntype, key_t key)
     : msgq_name_(name)
     , node_type_(ntype)
     , key_(key)
 {
+    signal(SIGINT, handle_interrupt);
+    signal(SIGQUIT, handle_interrupt);
+    signal(SIGKILL, handle_interrupt);
+    signal(SIGTERM, handle_interrupt);
+
     switch (ntype) {
     case NodeType::Receiver:
         // IPC_CREAT: create the message queue if it does not exist
@@ -92,35 +107,36 @@ std::shared_ptr<void> message_queue::receive()
     std::unique_ptr<char[]> buffer(new char[max_msg_size_]);
     ASSERT_RETURN(!buffer, nullptr, "malloc fail");
 
-    ssize_t received = msgrcv(msgid_, buffer.get(), max_msg_size_, 0, 0);
-    if (received == -1) {
-        switch (errno) {
-        case EINTR:
-            // Interrupted by a signal
-            LOG_INFO("msgrcv interrupted by signal\n");
-            return nullptr;
-        default:
+    while (!g_interrupted.load()) {
+        ssize_t received = msgrcv(msgid_, buffer.get(), max_msg_size_, 0, 0);
+        if (received == -1) {
+            if (errno == EINTR && g_interrupted.load())
+                goto Interruption;
             ASSERT_RETURN(true, nullptr, "msgrcv fail");
         }
+
+        msg* message = reinterpret_cast<msg*>(buffer.get());
+        ASSERT_RETURN(static_cast<size_t>(received) != sizeof(msg) + message->size, nullptr,
+            "Received size %ld does not match expected size %zu", received, sizeof(msg) + message->size);
+
+        std::shared_ptr<void> result(malloc(message->size), free);
+        ASSERT_RETURN(!result, nullptr, "malloc fail");
+        memcpy(result.get(), message->data, message->size);
+        return result;
     }
 
-    msg* message = reinterpret_cast<msg*>(buffer.get());
-    ASSERT_RETURN(static_cast<size_t>(received) != sizeof(msg) + message->size, nullptr,
-        "Received size %ld does not match expected size %zu", received, sizeof(msg) + message->size);
-
-    std::shared_ptr<void> result(malloc(message->size), free);
-    ASSERT_RETURN(!result, nullptr, "malloc fail");
-    memcpy(result.get(), message->data, message->size);
-    return result;
+Interruption:
+    LOG_INFO("msgrcv interrupted by signal, exiting Receiver '%s' (key: 0x%x)", msgq_name_.c_str(), key_);
+    remove();
+    exit(EXIT_SUCCESS);
 }
 
 bool message_queue::remove()
 {
     if (node_type_ == NodeType::Receiver) {
-        // msgctl will return -1 and set errno to EINVAL in our tests
-        // so we don't check the return value here
-        // ASSERT_RETURN(msgctl(msgid_, IPC_RMID, nullptr) == -1, false, "msgctl(IPC_RMID) fail, msgid: %d", msgid_);
-        msgctl(msgid_, IPC_RMID, nullptr);
+        LOG_DEBUG("Removing message queue '%s' (key: 0x%x) with ID %d", msgq_name_.c_str(), key_, msgid_);
+        // msgctl will return -1 and set errno to EINVAL if remove repeatedly
+        ASSERT_RETURN(msgctl(msgid_, IPC_RMID, nullptr) == -1 && errno != EINVAL, false, "msgctl(IPC_RMID) fail, msgid: %d", msgid_);
     }
     return true;
 }
