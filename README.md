@@ -94,7 +94,7 @@ auto rec = receiver.receive();   // Receive message (will block the process unti
 sender.send(data, sizeof(data)); // Send a message
 ```
 
-### Example (Linux)
+### Example
 
 Two example programs are provided in the `examples` directory: `sender.cpp` and `receiver.cpp`.
 

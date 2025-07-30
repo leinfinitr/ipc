@@ -3,7 +3,7 @@
 int main()
 {
     // Create an IPC node named "example"
-    ipc::node receiver("example");
+    ipc::node receiver("example", ipc::NodeType::Receiver);
 
     // receive the data
     auto rec = receiver.receive();
