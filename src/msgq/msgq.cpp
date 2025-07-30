@@ -107,7 +107,7 @@ std::shared_ptr<void> message_queue::receive()
     std::unique_ptr<char[]> buffer(new char[max_msg_size_]);
     ASSERT_RETURN(!buffer, nullptr, "malloc fail");
 
-    while (!g_interrupted.load()) {
+    if (!g_interrupted.load()) {
         ssize_t received = msgrcv(msgid_, buffer.get(), max_msg_size_, 0, 0);
         if (received == -1) {
             if (errno == EINTR && g_interrupted.load())
@@ -127,7 +127,6 @@ std::shared_ptr<void> message_queue::receive()
 
 Interruption:
     LOG_INFO("msgrcv interrupted by signal, remove Receiver '%s' (key: 0x%x)", msgq_name_.c_str(), key_);
-    remove();
     return nullptr;
 }
 
@@ -135,6 +134,7 @@ bool message_queue::remove()
 {
     if (node_type_ == NodeType::Receiver) {
         LOG_DEBUG("Removing message queue '%s' (key: 0x%x) with ID %d", msgq_name_.c_str(), key_, msgid_);
+        // The destructors of node and msgq will call remove() multiple times
         // msgctl will return -1 and set errno to EINVAL if remove repeatedly
         ASSERT_RETURN(msgctl(msgid_, IPC_RMID, nullptr) == -1 && errno != EINVAL, false, "msgctl(IPC_RMID) fail, msgid: %d", msgid_);
     }
