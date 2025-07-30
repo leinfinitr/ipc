@@ -9,6 +9,7 @@
 
 #include "ipc/pipe/pipe.h"
 #include "utils/assert.h"
+#include "utils/log.h"
 
 namespace pipe {
 
@@ -33,9 +34,6 @@ named_pipe::named_pipe(const std::string& name, NodeType ntype)
     ASSERT(stop_event_ == NULL, "CreateEvent failed");
 
     switch (ntype) {
-    case NodeType::Unknown:
-        ASSERT_RETURN(true, , "Link type must be specified in named_pipe constructor");
-        break;
     case NodeType::Sender:
         // Move connection establishment to send method
         // Prevent errors caused by not creating a receiver during initialization
@@ -72,8 +70,7 @@ bool named_pipe::send(const void* data, size_t data_size)
 
         if (!success && GetLastError() == ERROR_PIPE_NOT_CONNECTED) {
             // The pipe has been closed by the other end
-            printf("[ipc/pipe: sender] The pipe has been ended.\n");
-            printf("[ipc/pipe: sender] Waiting for receiver connection...\n");
+            LOG_INFO("The pipe has been ended, try to reconnect...");
             send_connected_ = false;
             // Reset the current pipeline instance and reconnect
             DisconnectNamedPipe(send_pipe_);
@@ -250,8 +247,7 @@ void named_pipe::recv_handle_connection(HANDLE pipe)
         if (!GetOverlappedResult(pipe, &overlapped, &bytesRead, FALSE)) {
             if (GetLastError() == ERROR_BROKEN_PIPE) {
                 // The pipe has been closed by the other end
-                printf("[ipc/pipe: receiver] The pipe has been ended.\n");
-                printf("[ipc/pipe: receiver] Close pipe instance.\n");
+                LOG_INFO("The pipe has been ended, close pipe instance.");
             } else
                 ASSERT(true, "GetOverlappedResult failed");
             break;
@@ -311,7 +307,7 @@ bool named_pipe::connect()
         std::this_thread::sleep_for(std::chrono::milliseconds(retry_interval_ms));
     }
 
-    ASSERT_RETURN(true, false, "Connect failed after retries.");
+    ASSERT_RETURN(true, false, "Connect failed after retrying %d times", max_retries);
 }
 
 } // namespace pipe
