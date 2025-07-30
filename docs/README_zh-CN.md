@@ -17,7 +17,8 @@
 
 确保安装了 Makefile 和 CMake 等相关的编译工具，而后通过 `make` 命令编译。编译完成后将在 `output` 目录下生成 `libipc.a`(Linux) 或者 `ipc.lib`(Windows) 静态库文件。
 
-运行 `/output/bin/ipc-test-correctness` 即可进行正确性测试；在不同终端依次运行 `/output/bin/ipc_server` 和 `/output/bin/ipc_client` 即可进行性能测试。
+- 单元测试：`/output/bin/ipc-test-correctness`
+- 性能测试：在不同终端依次运行 `/output/bin/ipc-test-performance-server` 和 `/output/bin/ipc-test-performance-client`
 
 ### 通信方式支持
 
@@ -81,27 +82,16 @@ target_include_directories(your_target PRIVATE ${IPC_INCLUDE_DIR})
 
 #### 代码编写
 
-**Windows**：在创建 IPC 通信节点需要指定节点类型为 `Receiver` 或 `Sender`
-
 ```cpp
 #include <ipc/ipc.h>
 
-// 创建两个名为 "Wow" 的 IPC 节点，底层使用命名管道（Windows 默认值）
-ipc::node receiver("Wow", ipc::NodeType::Receiver, ipc::ChannelType::NamedPipe);
+// 创建两个名为 "Wow" 的 IPC 节点，底层使用命名管道（Windows 默认值）或者消息队列（Linux 默认值）
+// ipc::node receiver("Wow", ipc::NodeType::Receiver, ipc::ChannelType::NamedPipe);
+// ipc::node receiver("Wow", ipc::NodeType::Receiver, ipc::ChannelType::MessageQueue);
+ipc::node receiver("Wow", ipc::NodeType::Receiver);
 ipc::node sender("Wow", ipc::NodeType::Sender);
 auto rec = receiver.receive();    // 接收消息（会阻塞进程直至接收到消息）
 sender.send(data, sizeof(data));  // 发送消息
-```
-
-**Linux**：通信节点 `ipc::node` 是半双工通信，每个实例均能向特定的 IPC 通道发送或接收消息。
-
-```cpp
-#include <ipc/ipc.h>
-
-// 创建一个名为 "Wow" 的 IPC 节点，底层使用消息队列
-ipc::node ipc_node("Wow", ipc::ChannelType::MessageQueue);
-ipc_node.send(data, sizeof(data));  // 发送消息
-auto rec = ipc_node.receive();      // 接收消息
 ```
 
 ### 示例（Linux）

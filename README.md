@@ -17,7 +17,8 @@ This repository implements a C++ IPC library based on the **Linux System V IPC i
 
 Ensure that relevant compilation tools such as Makefile and CMake are installed, and then compile using the `make` command. After compilation, a static library file named `libipc.a`(Linux) or `ipc.lib`(Windows) will be generated in the `output` directory.
 
-Run `/output/bin/IPC-test-correctness` to perform correctness testing. To perform performance testing, run `/output/bin/ipc_server` and `/output/bin/ipc_client` sequentially on different terminals.
+- Correctness Test: `/output/bin/ipc-test-correctness`
+- Performance Test: run `/output/bin/ ipc-test-performance-server` and `/output/bin/ipc-test-performance-client` sequentially on different terminals.
 
 ### Communication method support
 
@@ -81,27 +82,16 @@ target_include_directories(your_target PRIVATE ${IPC_INCLUDE_DIR})
 
 #### Code Writing
 
-**Windows**: When creating IPC communication nodes, it is necessary to specify the node type as `Receiver` or `Sender`
-
 ```cpp
 #include <ipc/ipc.h>
 
-// Create two IPC nodes named 'Wow', using named pipes at the bottom (Windows default)
-ipc::node receiver("Wow", ipc::NodeType::Receiver, ipc::ChannelType::NamedPipe);
+// Create two IPC nodes named 'Wow', using named pipe (Windows default) or message queue (Linux default) at the bottom 
+// ipc::node receiver("Wow", ipc::NodeType::Receiver, ipc::ChannelType::NamedPipe);
+// ipc::node receiver("Wow", ipc::NodeType::Receiver, ipc::ChannelType::MessageQueue);
+ipc::node receiver("Wow", ipc::NodeType::Receiver);
 ipc::node sender("Wow", ipc::NodeType::Sender);
 auto rec = receiver.receive();   // Receive message (will block the process until the message is received)
 sender.send(data, sizeof(data)); // Send a message
-```
-
-**Linux**: The communication node `IPC::node` is a half duplex communication, where each instance can send or receive messages to a specific IPC channel.
-
-```cpp
-#include <ipc/ipc.h>
-
-// Create an IPC node named 'Wow' using message queues at the bottom layer
-ipc::node ipc_node("Wow", ipc::ChannelType::MessageQueue);
-ipc_node.send(data, sizeof(data)); // Send a message
-auto rec = ipc_node.receive();     // Receive messages
 ```
 
 ### Example (Linux)

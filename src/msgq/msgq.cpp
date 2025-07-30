@@ -28,6 +28,7 @@ message_queue::message_queue(std::string name, NodeType ntype, key_t key)
     , node_type_(ntype)
     , key_(key)
 {
+    // Handle interrupt signals to prevent interruptions from causing msgq destruction issues
     signal(SIGINT, handle_interrupt);
     signal(SIGQUIT, handle_interrupt);
     signal(SIGKILL, handle_interrupt);
@@ -126,7 +127,7 @@ std::shared_ptr<void> message_queue::receive()
     }
 
 Interruption:
-    LOG_INFO("msgrcv interrupted by signal, remove Receiver '%s' (key: 0x%x)", msgq_name_.c_str(), key_);
+    LOG_INFO("msgrcv of Receiver '%s' (key: 0x%x) is interrupted by signal", msgq_name_.c_str(), key_);
     return nullptr;
 }
 
