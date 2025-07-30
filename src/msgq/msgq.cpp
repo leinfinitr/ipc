@@ -1,7 +1,6 @@
 #ifndef _WIN32
-#include <atomic>
+#include <iostream>
 #include <memory>
-#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,25 +14,11 @@
 
 namespace msgq {
 
-// Global flag to indicate if the program is interrupted by a signal
-static std::atomic<bool> g_interrupted { false };
-static void handle_interrupt(int signal)
-{
-    LOG_DEBUG("Received signal %d, setting interrupted flag", signal);
-    g_interrupted.store(true);
-}
-
 message_queue::message_queue(std::string name, NodeType ntype, key_t key)
     : msgq_name_(name)
     , node_type_(ntype)
     , key_(key)
 {
-    // Handle interrupt signals to prevent interruptions from causing msgq destruction issues
-    signal(SIGINT, handle_interrupt);
-    signal(SIGQUIT, handle_interrupt);
-    signal(SIGKILL, handle_interrupt);
-    signal(SIGTERM, handle_interrupt);
-
     switch (ntype) {
     case NodeType::Receiver:
         // IPC_CREAT: create the message queue if it does not exist
@@ -42,9 +27,28 @@ message_queue::message_queue(std::string name, NodeType ntype, key_t key)
         // 6 (110 binary) represents read and write permissions (4 read + 2 write)
         // 0666 indicates that all users (owners, groups, and others) can read and write to this message queue
         msgid_ = msgget(key, IPC_EXCL | IPC_CREAT | 0666);
-        // -1 indicates that msgq already exists
-        // But only one receiver can exist for a message queue
-        ASSERT_EXIT(msgid_ == -1, "Receiver of node '%s' (key: 0x%x) already exists", msgq_name_.c_str(), key);
+        if (msgid_ == -1) {
+            // -1 indicates that msgq already exists
+            // But only one receiver can exist for a message queue
+            LOG_INFO("Receiver of node '%s' (key: 0x%x) already exists, do you want to delete it? (y/n)", msgq_name_.c_str(), key);
+            char response;
+            std::cin >> response;
+            ASSERT_EXIT(response != 'y' && response != 'Y', "Receiver already exists, exiting");
+
+            // Delete the existing message queue
+            LOG_DEBUG("Deleting existing message queue '%s' (key: 0x%x)", msgq_name_.c_str(), key);
+            msgid_ = msgget(key, 0666);
+            ASSERT_EXIT(msgid_ == -1, "Failed to get existing message queue, key: 0x%x", key);
+            // IPC_RMID: remove the message queue
+            // If the message queue is not empty, it will be deleted after all messages are read
+            // If the message queue is empty, it will be deleted immediately
+            ASSERT_EXIT(msgctl(msgid_, IPC_RMID, nullptr) == -1, "Delete fail, msgid: %d", msgid_);
+            msgid_ = msgget(key, IPC_EXCL | IPC_CREAT | 0666);
+            ASSERT_EXIT(msgid_ == -1, "Failed to create new message queue, key: 0x%x", key);
+        } else {
+            // Successfully created a new message queue
+            LOG_DEBUG("Receiver (MessageQueue) '%s' (key: 0x%x) created with ID %d", msgq_name_.c_str(), key, msgid_);
+        }
 
         struct msqid_ds queue_info;
         ASSERT_EXIT(msgctl(msgid_, IPC_STAT, &queue_info) == -1, "msgctl(IPC_STAT) fail");
@@ -108,27 +112,17 @@ std::shared_ptr<void> message_queue::receive()
     std::unique_ptr<char[]> buffer(new char[max_msg_size_]);
     ASSERT_RETURN(!buffer, nullptr, "malloc fail");
 
-    if (!g_interrupted.load()) {
-        ssize_t received = msgrcv(msgid_, buffer.get(), max_msg_size_, 0, 0);
-        if (received == -1) {
-            if (errno == EINTR && g_interrupted.load())
-                goto Interruption;
-            ASSERT_RETURN(true, nullptr, "msgrcv fail");
-        }
+    ssize_t received = msgrcv(msgid_, buffer.get(), max_msg_size_, 0, 0);
+    ASSERT_RETURN(received == -1, nullptr, "msgrcv fail");
 
-        msg* message = reinterpret_cast<msg*>(buffer.get());
-        ASSERT_RETURN(static_cast<size_t>(received) != sizeof(msg) + message->size, nullptr,
-            "Received size %ld does not match expected size %zu", received, sizeof(msg) + message->size);
+    msg* message = reinterpret_cast<msg*>(buffer.get());
+    ASSERT_RETURN(static_cast<size_t>(received) != sizeof(msg) + message->size, nullptr,
+        "Received size %ld does not match expected size %zu", received, sizeof(msg) + message->size);
 
-        std::shared_ptr<void> result(malloc(message->size), free);
-        ASSERT_RETURN(!result, nullptr, "malloc fail");
-        memcpy(result.get(), message->data, message->size);
-        return result;
-    }
-
-Interruption:
-    LOG_INFO("msgrcv of Receiver '%s' (key: 0x%x) is interrupted by signal", msgq_name_.c_str(), key_);
-    return nullptr;
+    std::shared_ptr<void> result(malloc(message->size), free);
+    ASSERT_RETURN(!result, nullptr, "malloc fail");
+    memcpy(result.get(), message->data, message->size);
+    return result;
 }
 
 bool message_queue::remove()
