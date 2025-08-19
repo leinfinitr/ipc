@@ -22,7 +22,7 @@ node::node(std::string name, NodeType ntype, ChannelType ctype)
 #ifdef _WIN32
     switch (ctype) {
     case ChannelType::MessageQueue:
-        ASSERT_EXIT(true, "Message queue channel not implemented yet.");
+        XASSERT_EXIT(true, "Message queue channel not implemented yet.");
     case ChannelType::NamedPipe:
         channel_ = std::make_shared<pipe::named_pipe>(name, ntype);
         break;
@@ -33,14 +33,14 @@ node::node(std::string name, NodeType ntype, ChannelType ctype)
     std::hash<std::string> hasher;
     size_t hash = hasher(name);
     key_t key = static_cast<key_t>(hash & 0xFFFFFFFF);
-    ASSERT_EXIT(key == IPC_PRIVATE, "Generated key is IPC_PRIVATE, which is invalid");
+    XASSERT_EXIT(key == IPC_PRIVATE, "Generated key is IPC_PRIVATE, which is invalid");
 
     switch (ctype) {
     case ChannelType::MessageQueue:
         channel_ = std::make_shared<msgq::message_queue>(name, ntype, key);
         break;
     case ChannelType::NamedPipe:
-        ASSERT_EXIT(true, "Named pipe channel not implemented yet.");
+        XASSERT_EXIT(true, "Named pipe channel not implemented yet.");
     default:
         channel_ = std::make_shared<msgq::message_queue>(name, ntype, key);
     }
@@ -54,16 +54,16 @@ node::~node()
 
 bool node::send(void const* data, size_t data_size)
 {
-    ASSERT_RETURN(!channel_, false, "Channel not initialized");
-    ASSERT_RETURN(node_type_ != NodeType::Sender, false, "Cannot send data from a Receiver node");
+    XASSERT_RETURN(!channel_, false, "Channel not initialized");
+    XASSERT_RETURN(node_type_ != NodeType::Sender, false, "Cannot send data from a Receiver node");
 
     return channel_->send(data, data_size);
 }
 
 std::shared_ptr<void> node::receive()
 {
-    ASSERT_RETURN(!channel_, nullptr, "Channel not initialized");
-    ASSERT_RETURN(node_type_ != NodeType::Receiver, nullptr, "Cannot receive data from a Sender node");
+    XASSERT_RETURN(!channel_, nullptr, "Channel not initialized");
+    XASSERT_RETURN(node_type_ != NodeType::Receiver, nullptr, "Cannot receive data from a Sender node");
 
     return channel_->receive();
 }

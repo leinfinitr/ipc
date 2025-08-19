@@ -31,7 +31,7 @@ named_pipe::named_pipe(const std::string& name, NodeType ntype)
     , recv_stop_flag_(false)
 {
     stop_event_ = CreateEvent(NULL, TRUE, FALSE, NULL);
-    ASSERT(stop_event_ == NULL, "CreateEvent failed");
+    XASSERT(stop_event_ == NULL, "CreateEvent failed");
 
     switch (ntype) {
     case NodeType::Sender:
@@ -43,7 +43,7 @@ named_pipe::named_pipe(const std::string& name, NodeType ntype)
         recv_thread_ = std::thread(&named_pipe::recv_main, this);
         break;
     default:
-        ASSERT_RETURN(true, , "Unknown link type in named_pipe constructor");
+        XASSERT_RETURN(true, , "Unknown link type in named_pipe constructor");
         break;
     }
 }
@@ -55,9 +55,9 @@ named_pipe::~named_pipe()
 
 bool named_pipe::send(const void* data, size_t data_size)
 {
-    ASSERT_RETURN(node_type_ == NodeType::Receiver, false, "Receiver can't send data");
-    ASSERT_RETURN(!data, false, "Data is null");
-    ASSERT_RETURN(!connect(), false, "Connect failed in send");
+    XASSERT_RETURN(node_type_ == NodeType::Receiver, false, "Receiver can't send data");
+    XASSERT_RETURN(!data, false, "Data is null");
+    XASSERT_RETURN(!connect(), false, "Connect failed in send");
 
     DWORD bytesWritten;
     while (true) {
@@ -70,7 +70,7 @@ bool named_pipe::send(const void* data, size_t data_size)
 
         if (!success && GetLastError() == ERROR_PIPE_NOT_CONNECTED) {
             // The pipe has been closed by the other end
-            LOG_INFO("The pipe has been ended, try to reconnect...");
+            XINFO("The pipe has been ended, try to reconnect...");
             send_connected_ = false;
             // Reset the current pipeline instance and reconnect
             DisconnectNamedPipe(send_pipe_);
@@ -78,12 +78,12 @@ bool named_pipe::send(const void* data, size_t data_size)
             // Try sending data again after reconnecting
             continue;
         }
-        ASSERT_RETURN(!success, false, "WriteFile failed");
+        XASSERT_RETURN(!success, false, "WriteFile failed");
         break;
     }
 
-    ASSERT_RETURN(bytesWritten != data_size, false, "WriteFile write wrong size data, expected: %zu, written: %lu", data_size, bytesWritten);
-    LOG_DEBUG("WriteFile write %lu bytes data to pipe '%s'", bytesWritten, pipe_name_.c_str());
+    XASSERT_RETURN(bytesWritten != data_size, false, "WriteFile write wrong size data, expected: %zu, written: %lu", data_size, bytesWritten);
+    XDEBG("Sender '%s' write %lu byte", pipe_name_.c_str(), bytesWritten);
     return true;
 }
 
@@ -101,23 +101,23 @@ std::shared_ptr<void> named_pipe::receive()
             // After waking up, the thread will reacquire the lock and check the predicate condition
             // If true, continue with the execution
             // If false, release the lock again and block
-            LOG_DEBUG("Waiting for data in named_pipe '%s'", pipe_name_.c_str());
+            XDEBG("Receiver '%s' waiting for data", pipe_name_.c_str());
             return !recv_queue_.empty() || recv_stop_flag_.load();
         });
     }
 
-    ASSERT_RETURN(recv_queue_.empty(), nullptr, "recv_queue_ is empty");
+    XASSERT_RETURN(recv_queue_.empty(), nullptr, "recv_queue_ is empty");
 
     auto result = recv_queue_.front();
     recv_queue_.pop();
-    LOG_DEBUG("Received data from named pipe '%s'", pipe_name_.c_str());
+    XDEBG("'%s' received data", pipe_name_.c_str());
 
     return result;
 }
 
 bool named_pipe::remove()
 {
-    LOG_DEBUG("Removing named pipe '%s'", pipe_name_.c_str());
+    XDEBG("Removing named pipe %s '%s'", node_type_ == NodeType::Sender ? "sender" : "receiver", pipe_name_.c_str());
     recv_stop_flag_.store(true);
     SetEvent(stop_event_);
 
@@ -138,7 +138,7 @@ bool named_pipe::remove()
 
     {
         std::lock_guard<std::mutex> lock(queue_mutex_);
-        ASSERT(!recv_queue_.empty(), "There is unread data in the queue");
+        XASSERT(!recv_queue_.empty(), "There is unread data in the queue");
         std::queue<std::shared_ptr<void>>().swap(recv_queue_);
     }
 
@@ -169,19 +169,19 @@ void named_pipe::recv_main()
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 continue;
             }
-            ASSERT(true, "CreateNamedPipeA failed");
+            XASSERT(true, "CreateNamedPipeA failed");
         }
-        LOG_DEBUG("Named pipe '%s' created successfully", pipe_name_.c_str());
+        XDEBG("Receiver Named pipe '%s' created successfully", pipe_name_.c_str());
 
         // Set up overlapping structures and associate event
         OVERLAPPED overlapped = { 0 };
         overlapped.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-        ASSERT(overlapped.hEvent == NULL, "CreateEvent failed");
+        XASSERT(overlapped.hEvent == NULL, "CreateEvent failed");
 
         // Non blocking connection
         if (!ConnectNamedPipe(pipe, &overlapped)) {
             if (GetLastError() != ERROR_IO_PENDING) {
-                ASSERT(true, "ConnectNamedPipe failed");
+                XASSERT(true, "ConnectNamedPipe failed");
                 CloseHandle(pipe);
                 CloseHandle(overlapped.hEvent);
                 continue;
@@ -203,26 +203,30 @@ void named_pipe::recv_main()
         // Check the connection results
         DWORD bytesTransferred;
         if (!GetOverlappedResult(pipe, &overlapped, &bytesTransferred, FALSE)) {
-            ASSERT(true, "GetOverlappedResult failed");
+            XASSERT(true, "GetOverlappedResult failed");
             CloseHandle(pipe);
             CloseHandle(overlapped.hEvent);
             continue;
         }
 
         // Connection successful, start working thread
-        LOG_DEBUG("Named pipe '%s' connected successfully", pipe_name_.c_str());
-        std::thread(&named_pipe::recv_handle_connection, this, pipe).detach();
+        XDEBG("Receiver Named pipe '%s' connected successfully", pipe_name_.c_str());
+        auto handle_thread = std::thread(&named_pipe::recv_handle_connection, this, pipe);
+        XASSERT_EXIT(!handle_thread.joinable(), "recv_handle_connection thread failed to start");
+        handle_thread.detach();
         CloseHandle(overlapped.hEvent);
     }
 }
 
 void named_pipe::recv_handle_connection(HANDLE pipe)
 {
+    XDEBG("Receiver '%s' started a thread to handle connection", pipe_name_.c_str());
     char buffer[BUFFER_SIZE];
     OVERLAPPED overlapped = { 0 };
     overlapped.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 
     while (!recv_stop_flag_.load()) {
+        XDEBG("Receiver '%s' read data", pipe_name_.c_str());
         DWORD bytesRead;
         BOOL success = ReadFile(
             pipe,
@@ -235,11 +239,12 @@ void named_pipe::recv_handle_connection(HANDLE pipe)
         // Handle asynchronous operations
         if (!success && GetLastError() != ERROR_IO_PENDING) {
             // Error or disconnection
-            ASSERT(true, "ReadFile failed");
+            XASSERT(true, "ReadFile failed");
             break;
         }
 
         // Waiting for data or stop signal
+        XDEBG("Receiver '%s' waiting for data", pipe_name_.c_str());
         HANDLE waitHandles[2] = { overlapped.hEvent, stop_event_ };
         DWORD waitResult = WaitForMultipleObjects(2, waitHandles, FALSE, INFINITE);
 
@@ -253,9 +258,9 @@ void named_pipe::recv_handle_connection(HANDLE pipe)
         if (!GetOverlappedResult(pipe, &overlapped, &bytesRead, FALSE)) {
             if (GetLastError() == ERROR_BROKEN_PIPE) {
                 // The pipe has been closed by the other end
-                LOG_INFO("The pipe has been ended, close pipe instance.");
+                XINFO("The pipe has been ended, close pipe instance.");
             } else
-                ASSERT(true, "GetOverlappedResult failed");
+                XASSERT(true, "GetOverlappedResult failed");
             break;
         }
 
@@ -269,10 +274,11 @@ void named_pipe::recv_handle_connection(HANDLE pipe)
                 queue_cv_.notify_one();
             }
         }
-        LOG_DEBUG("ReadFile read %lu bytes data from pipe '%s'", bytesRead, pipe_name_.c_str());
+        XDEBG("Receiver '%s' read %lu bytes data from pipe", pipe_name_.c_str(), bytesRead);
     }
 
     // Cleanup
+    XDEBG("Receiver '%s' stop a handle hread", pipe_name_.c_str());
     CloseHandle(overlapped.hEvent);
     FlushFileBuffers(pipe);
     DisconnectNamedPipe(pipe);
@@ -302,10 +308,10 @@ bool named_pipe::connect()
 
             if (send_pipe_ != INVALID_HANDLE_VALUE) {
                 send_connected_ = true;
-                LOG_DEBUG("Connected to named pipe '%s' successfully", pipe_name_.c_str());
+                XDEBG("Sender '%s' connected successfully", pipe_name_.c_str());
                 return true;
             }
-            ASSERT(true, "CreateFile failed, retry %d times ...", i);
+            XASSERT(true, "CreateFile failed, retry %d times ...", i);
         }
 
         if (GetLastError() != ERROR_FILE_NOT_FOUND) {
@@ -315,7 +321,7 @@ bool named_pipe::connect()
         std::this_thread::sleep_for(std::chrono::milliseconds(retry_interval_ms));
     }
 
-    ASSERT_RETURN(true, false, "Connect failed after retrying %d times", max_retries);
+    XASSERT_RETURN(true, false, "Connect failed after retrying %d times", max_retries);
 }
 
 } // namespace pipe

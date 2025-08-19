@@ -1,35 +1,11 @@
 #pragma once
 
-#ifndef _WIN32
-#define ASSERT(expr, format, ...)                                           \
-    do {                                                                    \
-        if (static_cast<bool>(expr)) {                                      \
-            fprintf(stderr, "[IPC Error: %s(%d)] " format ": (%d)%s\n",     \
-                __FILE__, __LINE__, ##__VA_ARGS__, errno, strerror(errno)); \
-        }                                                                   \
-    } while (0)
+#include "log.h"
 
-#define ASSERT_RETURN(expr, ret, format, ...)                               \
-    do {                                                                    \
-        if (static_cast<bool>(expr)) {                                      \
-            fprintf(stderr, "[IPC Error: %s(%d)] " format ": (%d)%s\n",     \
-                __FILE__, __LINE__, ##__VA_ARGS__, errno, strerror(errno)); \
-            return ret;                                                     \
-        }                                                                   \
-    } while (0)
-
-#define ASSERT_EXIT(expr, format, ...)                                      \
-    do {                                                                    \
-        if (static_cast<bool>(expr)) {                                      \
-            fprintf(stderr, "[IPC Fault: %s(%d)] " format ": (%d)%s\n",     \
-                __FILE__, __LINE__, ##__VA_ARGS__, errno, strerror(errno)); \
-            exit(EXIT_FAILURE);                                             \
-        }                                                                   \
-    } while (0)
-
-#else
+#ifdef _WIN32
 #include <string>
 #include <windows.h>
+
 inline std::string win_strerror(DWORD errnum)
 {
     LPSTR buffer = nullptr;
@@ -50,34 +26,45 @@ inline std::string win_strerror(DWORD errnum)
     LocalFree(buffer); // Free the allocated buffer
     return message;
 }
-
-#define ASSERT(expr, format, ...)                                       \
-    do {                                                                \
-        if (static_cast<bool>(expr)) {                                  \
-            fprintf(stderr, "[IPC Error: %s(%d)] " format " : (%lu)%s", \
-                __FILE__, __LINE__, ##__VA_ARGS__,                      \
-                GetLastError(), win_strerror(GetLastError()).c_str());  \
-        }                                                               \
-    } while (0)
-
-#define ASSERT_RETURN(expr, ret, format, ...)                           \
-    do {                                                                \
-        if (static_cast<bool>(expr)) {                                  \
-            fprintf(stderr, "[IPC Error: %s(%d)] " format " : (%lu)%s", \
-                __FILE__, __LINE__, ##__VA_ARGS__,                      \
-                GetLastError(), win_strerror(GetLastError()).c_str());  \
-            return ret;                                                 \
-        }                                                               \
-    } while (0)
-
-#define ASSERT_EXIT(expr, format, ...)                                  \
-    do {                                                                \
-        if (static_cast<bool>(expr)) {                                  \
-            fprintf(stderr, "[IPC Fault: %s(%d)] " format " : (%lu)%s", \
-                __FILE__, __LINE__, ##__VA_ARGS__,                      \
-                GetLastError(), win_strerror(GetLastError()).c_str());  \
-            exit(EXIT_FAILURE);                                         \
-        }                                                               \
-    } while (0)
-
 #endif
+
+inline ERRNO get_errno()
+{
+#ifdef _WIN32
+    return GetLastError();
+#else
+    return errno;
+#endif
+}
+
+inline const char* get_errno_str()
+{
+#ifdef _WIN32
+    return win_strerror(get_errno()).c_str();
+#else
+    return strerror(get_errno());
+#endif
+}
+
+#define XASSERT(expr, format, ...)                                                 \
+    do {                                                                           \
+        if (static_cast<bool>(expr)) {                                             \
+            XINFO(format ": (%d)%s", ##__VA_ARGS__, get_errno(), get_errno_str()); \
+        }                                                                          \
+    } while (0)
+
+#define XASSERT_RETURN(expr, ret, format, ...)                                     \
+    do {                                                                           \
+        if (static_cast<bool>(expr)) {                                             \
+            XINFO(format ": (%d)%s", ##__VA_ARGS__, get_errno(), get_errno_str()); \
+            return ret;                                                            \
+        }                                                                          \
+    } while (0)
+
+#define XASSERT_EXIT(expr, format, ...)                                            \
+    do {                                                                           \
+        if (static_cast<bool>(expr)) {                                             \
+            XINFO(format ": (%d)%s", ##__VA_ARGS__, get_errno(), get_errno_str()); \
+            exit(EXIT_FAILURE);                                                    \
+        }                                                                          \
+    } while (0)
