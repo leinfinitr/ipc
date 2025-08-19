@@ -25,16 +25,18 @@ public:
 private:
     std::string pipe_name_;
     NodeType node_type_;
-    HANDLE stop_event_;
 
     HANDLE send_pipe_;
     bool send_connected_;
 
-    std::atomic<bool> recv_stop_flag_; // Determine whether the main thread has terminated
     std::thread recv_thread_; // The main thread of the server
+    HANDLE recv_stop_event_; // Event to notify the receive thread to stop
+    std::atomic<bool> recv_stop_flag_; // Check whether the main thread has terminated
+    std::vector<std::thread> recv_handle_threads_; // Threads to handle connections
+
+    std::queue<std::shared_ptr<void>> recv_queue_;  // Queue to store received data
     std::condition_variable queue_cv_; // Wake up the receive() upon receiving data
     std::mutex queue_mutex_;
-    std::queue<std::shared_ptr<void>> recv_queue_;
 
     static const DWORD BUFFER_SIZE = 4096; // Default buffer size for named pipe communication
 

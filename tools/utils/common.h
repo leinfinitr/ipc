@@ -13,7 +13,10 @@
 #endif
 
 #define UNFOLD(...) __VA_ARGS__
-#define UNUSED(expr) do { (void)(expr); } while (0)
+#define UNUSED(expr)  \
+    do {              \
+        (void)(expr); \
+    } while (0)
 
 #define FMT_32D "%" PRId32
 #define FMT_32U "%" PRIu32
@@ -24,10 +27,10 @@
 
 #ifdef _WIN32
 typedef int64_t TID;
-typedef pid_t PID;
+typedef uint32_t PID;
 typedef uint32_t ERRNO;
 #define FMT_TID FMT_64D
-#define FMT_PID FMT_64D
+#define FMT_PID FMT_32U
 #define FMT_ERRNO FMT_32U
 #else
 typedef int32_t TID;

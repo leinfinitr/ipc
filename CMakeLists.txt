@@ -18,6 +18,9 @@ if(MSVC)
     # avoiding conflicts between /MTd(ipc) and /MDd(gtest).
     set(CMAKE_C_FLAGS_DEBUG   "$ENV{CFLAGS}   /Od /Zi")
     set(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} /Od /Zi")
+    # Enable preprocessors that comply with C99, C++11, and higher standards
+    # Used to support __VA_OPT__(,) feature
+    add_compile_options(/Zc:preprocessor)
 endif()
 
 add_subdirectory(src)
