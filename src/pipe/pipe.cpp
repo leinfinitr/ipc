@@ -83,6 +83,7 @@ bool named_pipe::send(const void* data, size_t data_size)
     }
 
     ASSERT_RETURN(bytesWritten != data_size, false, "WriteFile write wrong size data, expected: %zu, written: %lu", data_size, bytesWritten);
+    LOG_DEBUG("WriteFile write %lu bytes data to pipe '%s'", bytesWritten, pipe_name_.c_str());
     return true;
 }
 
@@ -100,6 +101,7 @@ std::shared_ptr<void> named_pipe::receive()
             // After waking up, the thread will reacquire the lock and check the predicate condition
             // If true, continue with the execution
             // If false, release the lock again and block
+            LOG_DEBUG("Waiting for data in named_pipe '%s'", pipe_name_.c_str());
             return !recv_queue_.empty() || recv_stop_flag_.load();
         });
     }
@@ -108,12 +110,14 @@ std::shared_ptr<void> named_pipe::receive()
 
     auto result = recv_queue_.front();
     recv_queue_.pop();
+    LOG_DEBUG("Received data from named pipe '%s'", pipe_name_.c_str());
 
     return result;
 }
 
 bool named_pipe::remove()
 {
+    LOG_DEBUG("Removing named pipe '%s'", pipe_name_.c_str());
     recv_stop_flag_.store(true);
     SetEvent(stop_event_);
 
@@ -167,6 +171,7 @@ void named_pipe::recv_main()
             }
             ASSERT(true, "CreateNamedPipeA failed");
         }
+        LOG_DEBUG("Named pipe '%s' created successfully", pipe_name_.c_str());
 
         // Set up overlapping structures and associate event
         OVERLAPPED overlapped = { 0 };
@@ -205,6 +210,7 @@ void named_pipe::recv_main()
         }
 
         // Connection successful, start working thread
+        LOG_DEBUG("Named pipe '%s' connected successfully", pipe_name_.c_str());
         std::thread(&named_pipe::recv_handle_connection, this, pipe).detach();
         CloseHandle(overlapped.hEvent);
     }
@@ -263,6 +269,7 @@ void named_pipe::recv_handle_connection(HANDLE pipe)
                 queue_cv_.notify_one();
             }
         }
+        LOG_DEBUG("ReadFile read %lu bytes data from pipe '%s'", bytesRead, pipe_name_.c_str());
     }
 
     // Cleanup
@@ -295,6 +302,7 @@ bool named_pipe::connect()
 
             if (send_pipe_ != INVALID_HANDLE_VALUE) {
                 send_connected_ = true;
+                LOG_DEBUG("Connected to named pipe '%s' successfully", pipe_name_.c_str());
                 return true;
             }
             ASSERT(true, "CreateFile failed, retry %d times ...", i);
