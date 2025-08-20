@@ -25,7 +25,7 @@ void test_basic()
             fprintf(stderr, "Failed to Receive message\n");
             exit(1);
         }
-        const char* res = static_cast<const char*>(rec.get());
+        const char* res = static_cast<const char*>(rec.get()->Data());
         EXPECT_STREQ(res, msg);
     } else {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -48,15 +48,15 @@ void test_loop()
         perror("fork fail");
         exit(1);
     } else if (pid != 0) {
-        ipc::Node Node("loop", ipc::NodeType::kReceiver, ipc::ChannelType::kMessageQueue);
-        std::shared_ptr<void> rec = nullptr;
+        ipc::Node node("loop", ipc::NodeType::kReceiver, ipc::ChannelType::kMessageQueue);
+        std::shared_ptr<Buffer> rec = nullptr;
         for (int i = 0; i < 20; ++i) {
-            rec = Node.Receive();
+            rec = node.Receive();
             if (!rec) {
                 fprintf(stderr, "Failed to Receive message\n");
                 exit(1);
             }
-            const char* res = static_cast<const char*>(rec.get());
+            const char* res = static_cast<const char*>(rec.get()->Data());
             std::string expected_msg = std::string(base_msg) + " - Message #" + std::to_string(i + 1);
             EXPECT_STREQ(res, expected_msg.c_str());
         }
@@ -65,10 +65,10 @@ void test_loop()
         testing::GTEST_FLAG(output) = "";
         testing::GTEST_FLAG(print_time) = false;
 
-        ipc::Node Node("loop", ipc::NodeType::kSender, ipc::ChannelType::kMessageQueue);
+        ipc::Node node("loop", ipc::NodeType::kSender, ipc::ChannelType::kMessageQueue);
         for (int i = 0; i < 20; ++i) {
             std::string full_msg = std::string(base_msg) + " - Message #" + std::to_string(i + 1);
-            EXPECT_TRUE(Node.Send(full_msg.c_str(), full_msg.size() + 1)); // +1 for null terminator
+            EXPECT_TRUE(node.Send(full_msg.c_str(), full_msg.size() + 1)); // +1 for null terminator
         }
 
         exit(0);
@@ -106,7 +106,7 @@ void test_struct()
             fprintf(stderr, "Failed to Receive message\n");
             exit(1);
         }
-        auto received_msg = static_cast<message*>(rec.get());
+        auto received_msg = static_cast<message*>(rec.get()->Data());
         EXPECT_EQ(received_msg->meta_info.id, msg.meta_info.id);
         EXPECT_STREQ(received_msg->meta_info.name, msg.meta_info.name);
         EXPECT_DOUBLE_EQ(received_msg->meta_info.value, msg.meta_info.value);
@@ -153,7 +153,7 @@ void test_class()
             fprintf(stderr, "Failed to Receive message\n");
             exit(1);
         }
-        auto received_obj = static_cast<MyClass*>(rec.get());
+        auto received_obj = static_cast<MyClass*>(rec.get()->Data());
         EXPECT_EQ(received_obj->id, obj.id);
         EXPECT_STREQ(received_obj->name, obj.name);
         EXPECT_DOUBLE_EQ(received_obj->value, obj.value);
@@ -207,7 +207,7 @@ void test_subclass()
             fprintf(stderr, "Failed to Receive message\n");
             exit(1);
         }
-        auto received_obj = static_cast<Derived*>(rec.get());
+        auto received_obj = static_cast<Derived*>(rec.get()->Data());
         EXPECT_EQ(received_obj->id, obj.id);
         EXPECT_STREQ(received_obj->name, obj.name);
         EXPECT_DOUBLE_EQ(received_obj->value, obj.value);

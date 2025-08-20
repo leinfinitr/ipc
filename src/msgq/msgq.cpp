@@ -85,10 +85,10 @@ bool MessageQueue::Send(const void* data, size_t data_size)
 
     XASSERT_RETURN(!data, false, "Data is null");
 
-    size_t total_size = sizeof(msg) + data_size;
+    size_t total_size = sizeof(Message) + data_size;
     XASSERT_RETURN(total_size > max_msg_size_, false, "Data size %zu exceeds maximum message size %zu", data_size, max_msg_size_);
 
-    Message* message = static_cast<msg*>(malloc(total_size));
+    Message* message = static_cast<Message*>(malloc(total_size));
     XASSERT_RETURN(!message, false, "malloc fail");
 
     message->mtype = MESSAGE_TYPE;
@@ -98,7 +98,7 @@ bool MessageQueue::Send(const void* data, size_t data_size)
     if (msgsnd(msgid_, message, total_size, 0) == -1) {
         // Fail reasons:
         // 1. kReceiver restart makes the msgid_ invalid
-        XXASSERT(true, "msgsnd fail");
+        XASSERT(true, "msgsnd fail");
         free(message);
         return false;
     }
@@ -115,11 +115,11 @@ std::shared_ptr<Buffer> MessageQueue::Receive()
     ssize_t received = msgrcv(msgid_, buffer.get(), max_msg_size_, 0, 0);
     XASSERT_RETURN(received == -1, nullptr, "msgrcv fail");
 
-    Message* message = reinterpret_cast<msg*>(buffer.get());
-    XASSERT_RETURN(static_cast<size_t>(received) != sizeof(msg) + message->size, nullptr,
-        "Received size %ld does not match expected size %zu", received, sizeof(msg) + message->size);
+    Message* message = reinterpret_cast<Message*>(buffer.get());
+    XASSERT_RETURN(static_cast<size_t>(received) != sizeof(Message) + message->size, nullptr,
+        "Received size %ld does not match expected size %zu", received, sizeof(Message) + message->size);
 
-    std::shared_ptr<Buffer> result(malloc(message->size), message->size);
+    auto result = std::make_shared<Buffer>(malloc(message->size), message->size);
     XASSERT_RETURN(!result, nullptr, "malloc fail");
     memcpy(result->Data(), message->data, message->size);
     return result;
