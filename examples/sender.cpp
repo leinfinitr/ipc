@@ -6,8 +6,8 @@ int main()
     // Example of sending a message using IPC
     std::string data = "Hello, IPC!";
 
-    // Create an IPC node named "example"
-    ipc::node sender("example", ipc::NodeType::Sender);
+    // Create an IPC Node named "example"
+    ipc::Node sender("example", ipc::NodeType::kSender);
 
     // Send the data
     if (!sender.send(data.c_str(), data.size() + 1)) {

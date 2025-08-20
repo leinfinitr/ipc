@@ -2,13 +2,13 @@
 
 int main()
 {
-    // Create an IPC node named "example"
-    ipc::node receiver("example", ipc::NodeType::Receiver);
+    // Create an IPC Node named "example"
+    ipc::Node receiver("example", ipc::NodeType::kReceiver);
 
-    // receive the data
-    auto rec = receiver.receive();
+    // Receive the data
+    auto rec = receiver.Receive();
     if (!rec) {
-        fprintf(stderr, "Failed to receive message\n");
+        fprintf(stderr, "Failed to Receive message\n");
         return 1;
     }
     const char* data = static_cast<const char*>(rec.get());

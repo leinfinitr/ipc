@@ -24,8 +24,8 @@ int64_t current_timestamp()
 int main()
 {
     // Initialize separate channels for sending and receiving
-    ipc::node sender("ipc-latency-request", ipc::NodeType::Sender);
-    ipc::node receiver("ipc-latency-response", ipc::NodeType::Receiver);
+    ipc::Node sender("ipc-latency-request", ipc::NodeType::kSender);
+    ipc::Node receiver("ipc-latency-response", ipc::NodeType::kReceiver);
 
     std::cout << "Connecting to IPC server..." << std::endl;
     std::cout << "Sending on channel: ipc-latency-request" << std::endl;
@@ -39,17 +39,17 @@ int main()
     for (int i = 0; i < WARMUP_ITERATIONS; i++) {
         // Send message
         std::string msg = base_msg + " - Warmup #" + std::to_string(i + 1);
-        sender.send(msg.c_str(), msg.size() + 1);
+        sender.Send(msg.c_str(), msg.size() + 1);
 
         // Wait for reply
-        auto reply = receiver.receive();
+        auto reply = receiver.Receive();
         if (!reply) {
             std::cerr << "Error receiving reply during warmup" << std::endl;
             continue;
         }
 
         // Check if the reply matches the sent message
-        const char* res = static_cast<const char*>(reply.get());
+        const char* res = static_cast<const char*>(reply.get()->Data());
         if (strcmp(res, msg.c_str()) != 0) {
             std::cerr << "Warmup message mismatch: expected '" << msg << "', got '" << res << "'" << std::endl;
         }
@@ -66,10 +66,10 @@ int main()
         int64_t send_time = current_timestamp();
 
         // Send message
-        sender.send(msg.c_str(), msg.size() + 1);
+        sender.Send(msg.c_str(), msg.size() + 1);
 
         // Wait for reply
-        auto reply = receiver.receive();
+        auto reply = receiver.Receive();
         if (!reply) {
             std::cerr << "Error receiving reply" << std::endl;
             continue;
@@ -81,7 +81,7 @@ int main()
         latencies.push_back(latency);
 
         // Check if the reply matches the sent message
-        const char* res = static_cast<const char*>(reply.get());
+        const char* res = static_cast<const char*>(reply.get()->Data());
         if (strcmp(res, msg.c_str()) != 0) {
             std::cerr << "Test message mismatch: expected '" << msg << "', got '" << res << "'" << std::endl;
         }

@@ -11,14 +11,14 @@ using namespace ipc;
 
 namespace msgq {
 
-class message_queue : public Channel {
+class MessageQueue : public Channel {
 public:
-    message_queue(std::string name, NodeType ntype, key_t key);
-    ~message_queue();
+    MessageQueue(std::string name, NodeType ntype, key_t key);
+    ~MessageQueue();
 
-    bool send(const void* data, size_t data_size = 0) override;
-    std::shared_ptr<void> receive() override;
-    bool remove() override;
+    bool Send(const void* data, size_t data_size = 0) override;
+    std::shared_ptr<Buffer> Receive() override;
+    bool Remove() override;
 
 private:
     const std::string msgq_name_;
@@ -29,7 +29,7 @@ private:
     msglen_t max_msg_size_ = 0;
 
     static constexpr long MESSAGE_TYPE = 1;
-    struct msg {
+    struct Message {
         long mtype; // Message type, required by System V communication standards
         size_t size;
         char data[];

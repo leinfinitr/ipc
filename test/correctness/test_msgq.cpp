@@ -19,10 +19,10 @@ void test_basic()
         perror("fork fail");
         exit(1);
     } else if (pid != 0) {
-        ipc::node node("basic", ipc::NodeType::Receiver, ipc::ChannelType::MessageQueue);
-        auto rec = node.receive();
+        ipc::Node Node("basic", ipc::NodeType::kReceiver, ipc::ChannelType::kMessageQueue);
+        auto rec = Node.Receive();
         if (!rec) {
-            fprintf(stderr, "Failed to receive message\n");
+            fprintf(stderr, "Failed to Receive message\n");
             exit(1);
         }
         const char* res = static_cast<const char*>(rec.get());
@@ -32,8 +32,8 @@ void test_basic()
         testing::GTEST_FLAG(output) = "";
         testing::GTEST_FLAG(print_time) = false;
 
-        ipc::node node("basic", ipc::NodeType::Sender, ipc::ChannelType::MessageQueue);
-        EXPECT_TRUE(node.send(msg, strlen(msg)));
+        ipc::Node Node("basic", ipc::NodeType::kSender, ipc::ChannelType::kMessageQueue);
+        EXPECT_TRUE(Node.Send(msg, strlen(msg)));
 
         exit(0);
     }
@@ -48,12 +48,12 @@ void test_loop()
         perror("fork fail");
         exit(1);
     } else if (pid != 0) {
-        ipc::node node("loop", ipc::NodeType::Receiver, ipc::ChannelType::MessageQueue);
+        ipc::Node Node("loop", ipc::NodeType::kReceiver, ipc::ChannelType::kMessageQueue);
         std::shared_ptr<void> rec = nullptr;
         for (int i = 0; i < 20; ++i) {
-            rec = node.receive();
+            rec = Node.Receive();
             if (!rec) {
-                fprintf(stderr, "Failed to receive message\n");
+                fprintf(stderr, "Failed to Receive message\n");
                 exit(1);
             }
             const char* res = static_cast<const char*>(rec.get());
@@ -65,10 +65,10 @@ void test_loop()
         testing::GTEST_FLAG(output) = "";
         testing::GTEST_FLAG(print_time) = false;
 
-        ipc::node node("loop", ipc::NodeType::Sender, ipc::ChannelType::MessageQueue);
+        ipc::Node Node("loop", ipc::NodeType::kSender, ipc::ChannelType::kMessageQueue);
         for (int i = 0; i < 20; ++i) {
             std::string full_msg = std::string(base_msg) + " - Message #" + std::to_string(i + 1);
-            EXPECT_TRUE(node.send(full_msg.c_str(), full_msg.size() + 1)); // +1 for null terminator
+            EXPECT_TRUE(Node.Send(full_msg.c_str(), full_msg.size() + 1)); // +1 for null terminator
         }
 
         exit(0);
@@ -100,10 +100,10 @@ void test_struct()
         perror("fork fail");
         exit(1);
     } else if (pid != 0) {
-        ipc::node node("struct", ipc::NodeType::Receiver, ipc::ChannelType::MessageQueue);
-        auto rec = node.receive();
+        ipc::Node Node("struct", ipc::NodeType::kReceiver, ipc::ChannelType::kMessageQueue);
+        auto rec = Node.Receive();
         if (!rec) {
-            fprintf(stderr, "Failed to receive message\n");
+            fprintf(stderr, "Failed to Receive message\n");
             exit(1);
         }
         auto received_msg = static_cast<message*>(rec.get());
@@ -117,8 +117,8 @@ void test_struct()
         testing::GTEST_FLAG(output) = "";
         testing::GTEST_FLAG(print_time) = false;
 
-        ipc::node node("struct", ipc::NodeType::Sender, ipc::ChannelType::MessageQueue);
-        EXPECT_TRUE(node.send(&msg, sizeof(msg)));
+        ipc::Node Node("struct", ipc::NodeType::kSender, ipc::ChannelType::kMessageQueue);
+        EXPECT_TRUE(Node.Send(&msg, sizeof(msg)));
 
         exit(0);
     }
@@ -147,10 +147,10 @@ void test_class()
         perror("fork fail");
         exit(1);
     } else if (pid != 0) {
-        ipc::node node("class", ipc::NodeType::Receiver, ipc::ChannelType::MessageQueue);
-        auto rec = node.receive();
+        ipc::Node Node("class", ipc::NodeType::kReceiver, ipc::ChannelType::kMessageQueue);
+        auto rec = Node.Receive();
         if (!rec) {
-            fprintf(stderr, "Failed to receive message\n");
+            fprintf(stderr, "Failed to Receive message\n");
             exit(1);
         }
         auto received_obj = static_cast<MyClass*>(rec.get());
@@ -162,8 +162,8 @@ void test_class()
         testing::GTEST_FLAG(output) = "";
         testing::GTEST_FLAG(print_time) = false;
 
-        ipc::node node("class", ipc::NodeType::Sender, ipc::ChannelType::MessageQueue);
-        EXPECT_TRUE(node.send(&obj, sizeof(MyClass)));
+        ipc::Node Node("class", ipc::NodeType::kSender, ipc::ChannelType::kMessageQueue);
+        EXPECT_TRUE(Node.Send(&obj, sizeof(MyClass)));
 
         exit(0);
     }
@@ -201,10 +201,10 @@ void test_subclass()
         perror("fork fail");
         exit(1);
     } else if (pid != 0) {
-        ipc::node node("subclass", ipc::NodeType::Receiver, ipc::ChannelType::MessageQueue);
-        auto rec = node.receive();
+        ipc::Node Node("subclass", ipc::NodeType::kReceiver, ipc::ChannelType::kMessageQueue);
+        auto rec = Node.Receive();
         if (!rec) {
-            fprintf(stderr, "Failed to receive message\n");
+            fprintf(stderr, "Failed to Receive message\n");
             exit(1);
         }
         auto received_obj = static_cast<Derived*>(rec.get());
@@ -216,8 +216,8 @@ void test_subclass()
         testing::GTEST_FLAG(output) = "";
         testing::GTEST_FLAG(print_time) = false;
 
-        ipc::node node("subclass", ipc::NodeType::Sender, ipc::ChannelType::MessageQueue);
-        EXPECT_TRUE(node.send(&obj, sizeof(Derived)));
+        ipc::Node Node("subclass", ipc::NodeType::kSender, ipc::ChannelType::kMessageQueue);
+        EXPECT_TRUE(Node.Send(&obj, sizeof(Derived)));
 
         exit(0);
     }

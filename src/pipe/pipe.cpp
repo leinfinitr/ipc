@@ -23,20 +23,20 @@ namespace pipe {
 // The client can write <ServerName> as a dot or remote hostname.
 #define LOCAL_PIPI R"(\\.\pipe\)"
 
-named_pipe::named_pipe(const std::string& name, NodeType ntype)
+NamedPipe::NamedPipe(const std::string& name, NodeType ntype)
     : pipe_name_(LOCAL_PIPI + name)
     , node_type_(ntype)
 {
     switch (ntype) {
-    case NodeType::Sender:
+    case NodeType::kSender:
         send_pipe_ = INVALID_HANDLE_VALUE;
         send_connected_ = false;
         // Move connection establishment to send method
         // Prevent errors caused by not creating a receiver during initialization
         break;
-    case NodeType::Receiver:
+    case NodeType::kReceiver:
         // Start the receiver thread
-        recv_thread_ = std::thread(&named_pipe::recv_main, this);
+        recv_thread_ = std::thread(&NamedPipe::RecvLoop, this);
         recv_stop_event_ = CreateEvent(
             NULL, // default security attributes
             TRUE, // manual-reset event
@@ -47,21 +47,21 @@ named_pipe::named_pipe(const std::string& name, NodeType ntype)
         recv_stop_flag_.store(false);
         break;
     default:
-        XASSERT_RETURN(true, , "Unknown link type in named_pipe constructor");
+        XASSERT_RETURN(true, , "Unknown link type in NamedPipe constructor");
         break;
     }
 }
 
-named_pipe::~named_pipe()
+NamedPipe::~NamedPipe()
 {
-    named_pipe::remove();
+    NamedPipe::Remove();
 }
 
-bool named_pipe::send(const void* data, size_t data_size)
+bool NamedPipe::Send(const void* data, size_t data_size)
 {
-    XASSERT_RETURN(node_type_ == NodeType::Receiver, false, "Receiver can't send data");
+    XASSERT_RETURN(node_type_ == NodeType::kReceiver, false, "kReceiver can't send data");
     XASSERT_RETURN(!data, false, "Data is null");
-    XASSERT_RETURN(!connect(), false, "Connect failed in send");
+    XASSERT_RETURN(!Connect(), false, "Connect failed in send");
 
     DWORD bytesWritten;
     while (true) {
@@ -78,7 +78,7 @@ bool named_pipe::send(const void* data, size_t data_size)
             send_connected_ = false;
             // Reset the current pipe instance and reconnect
             DisconnectNamedPipe(send_pipe_);
-            connect();
+            Connect();
             // Try sending data again after reconnecting
             continue;
         }
@@ -87,17 +87,17 @@ bool named_pipe::send(const void* data, size_t data_size)
     }
 
     XASSERT_RETURN(bytesWritten != data_size, false, "WriteFile write wrong size data, expected: %zu, written: %lu", data_size, bytesWritten);
-    XDEBG("Sender '%s' write %lu byte", pipe_name_.c_str(), bytesWritten);
+    XDEBG("kSender '%s' write %lu byte", pipe_name_.c_str(), bytesWritten);
     return true;
 }
 
-std::shared_ptr<void> named_pipe::receive()
+std::shared_ptr<Buffer> NamedPipe::Receive()
 {
     // The constructor will automatically lock queue_mutex_
     std::unique_lock<std::mutex> lock(queue_mutex_);
 
     // First check if there is any readable data (to avoid loss notifications)
-    // Prevent the function from not being called before receiving the recv_handle_connection notification
+    // Prevent the function from not being called before receiving the RecvHandle notification
     if (recv_queue_.empty()) {
         // The wait method will release the mutex held by the lock
         // and block the current thread until other threads call notify_one() or notify_all() to wake it up.
@@ -119,11 +119,11 @@ std::shared_ptr<void> named_pipe::receive()
     return result;
 }
 
-bool named_pipe::remove()
+bool NamedPipe::Remove()
 {
-    XDEBG("Removing named pipe %s '%s'", node_type_ == NodeType::Sender ? "sender" : "receiver", pipe_name_.c_str());
+    XDEBG("Removing named pipe %s '%s'", node_type_ == NodeType::kSender ? "sender" : "receiver", pipe_name_.c_str());
 
-    if (node_type_ == NodeType::Sender && send_connected_) {
+    if (node_type_ == NodeType::kSender && send_connected_) {
         DisconnectNamedPipe(send_pipe_);
         send_connected_ = false;
         return true;
@@ -134,7 +134,7 @@ bool named_pipe::remove()
         queue_mutex_.lock();
         queue_cv_.notify_all();
         XASSERT(!recv_queue_.empty(), "There is unread data in the queue");
-        std::queue<std::shared_ptr<void>>().swap(recv_queue_);
+        std::queue<std::shared_ptr<Buffer>>().swap(recv_queue_);
         queue_mutex_.unlock();
 
         if (recv_thread_.joinable()) {
@@ -149,7 +149,7 @@ bool named_pipe::remove()
     }
 }
 
-void named_pipe::recv_main()
+void NamedPipe::RecvLoop()
 {
     while (!recv_stop_flag_.load()) {
         HANDLE pipe = CreateNamedPipeA(
@@ -217,14 +217,14 @@ void named_pipe::recv_main()
 
         // Connection successful, start working thread
         XDEBG("Receiver '%s' pipe connected successfully", pipe_name_.c_str());
-        auto handle_thread = std::thread(&named_pipe::recv_handle_connection, this, pipe);
-        XASSERT_EXIT(!handle_thread.joinable(), "recv_handle_connection thread failed to start");
+        auto handle_thread = std::thread(&NamedPipe::RecvHandle, this, pipe);
+        XASSERT_EXIT(!handle_thread.joinable(), "RecvHandle thread failed to start");
         recv_handle_threads_.push_back(std::move(handle_thread));
         CloseHandle(overlapped.hEvent);
     }
 }
 
-void named_pipe::recv_handle_connection(HANDLE pipe)
+void NamedPipe::RecvHandle(HANDLE pipe)
 {
     XDEBG("Receiver '%s' started a thread to handle connection", pipe_name_.c_str());
     char buffer[BUFFER_SIZE];
@@ -262,7 +262,7 @@ void named_pipe::recv_handle_connection(HANDLE pipe)
         // Obtain reading results
         if (!GetOverlappedResult(pipe, &overlapped, &bytesRead, FALSE)) {
             if (GetLastError() == ERROR_BROKEN_PIPE) {
-                // The pipe has been closed by Sender
+                // The pipe has been closed by kSender
                 XINFO("The pipe has been ended, close pipe instance.");
                 break;
             } else
@@ -271,8 +271,8 @@ void named_pipe::recv_handle_connection(HANDLE pipe)
 
         // Processing valid data
         if (bytesRead > 0) {
-            auto data = std::shared_ptr<void>(malloc(bytesRead), free);
-            memcpy(data.get(), buffer, bytesRead);
+            auto data = std::make_shared<Buffer>(malloc(bytesRead), bytesRead);
+            memcpy(data->Data(), buffer, bytesRead);
             {
                 std::lock_guard<std::mutex> lock(queue_mutex_);
                 recv_queue_.push(data);
@@ -290,8 +290,8 @@ void named_pipe::recv_handle_connection(HANDLE pipe)
     CloseHandle(pipe);
 }
 
-// Sender connects to Receiver
-bool named_pipe::connect()
+// kSender connects to Receiver
+bool NamedPipe::Connect()
 {
     if (send_connected_) {
         return true;
@@ -313,7 +313,7 @@ bool named_pipe::connect()
 
             if (send_pipe_ != INVALID_HANDLE_VALUE) {
                 send_connected_ = true;
-                XDEBG("Sender '%s' connected successfully", pipe_name_.c_str());
+                XDEBG("kSender '%s' connected successfully", pipe_name_.c_str());
                 return true;
             }
             XASSERT(true, "CreateFile failed, retry %d times ...", i);

@@ -15,19 +15,19 @@
 
 namespace ipc {
 
-node::node(std::string name, NodeType ntype, ChannelType ctype)
+Node::Node(std::string name, NodeType ntype, ChannelType ctype)
     : name_(name)
     , node_type_(ntype)
 {
 #ifdef _WIN32
     switch (ctype) {
-    case ChannelType::MessageQueue:
+    case ChannelType::kMessageQueue:
         XASSERT_EXIT(true, "Message queue channel not implemented yet.");
-    case ChannelType::NamedPipe:
-        channel_ = std::make_shared<pipe::named_pipe>(name, ntype);
+    case ChannelType::kNamedPipe:
+        channel_ = std::make_shared<pipe::NamedPipe>(name, ntype);
         break;
     default:
-        channel_ = std::make_shared<pipe::named_pipe>(name, ntype);
+        channel_ = std::make_shared<pipe::NamedPipe>(name, ntype);
     }
 #else
     std::hash<std::string> hasher;
@@ -36,42 +36,42 @@ node::node(std::string name, NodeType ntype, ChannelType ctype)
     XASSERT_EXIT(key == IPC_PRIVATE, "Generated key is IPC_PRIVATE, which is invalid");
 
     switch (ctype) {
-    case ChannelType::MessageQueue:
-        channel_ = std::make_shared<msgq::message_queue>(name, ntype, key);
+    case ChannelType::kMessageQueue:
+        channel_ = std::make_shared<msgq::MessageQueue>(name, ntype, key);
         break;
-    case ChannelType::NamedPipe:
+    case ChannelType::kNamedPipe:
         XASSERT_EXIT(true, "Named pipe channel not implemented yet.");
     default:
-        channel_ = std::make_shared<msgq::message_queue>(name, ntype, key);
+        channel_ = std::make_shared<msgq::MessageQueue>(name, ntype, key);
     }
 #endif
 }
 
-node::~node()
+Node::~Node()
 {
-    remove();
+    Remove();
 }
 
-bool node::send(void const* data, size_t data_size)
+bool Node::Send(void const* data, size_t data_size)
 {
     XASSERT_RETURN(!channel_, false, "Channel not initialized");
-    XASSERT_RETURN(node_type_ != NodeType::Sender, false, "Cannot send data from a Receiver node");
+    XASSERT_RETURN(node_type_ != NodeType::kSender, false, "Cannot Send data from a Receiver Node");
 
-    return channel_->send(data, data_size);
+    return channel_->Send(data, data_size);
 }
 
-std::shared_ptr<void> node::receive()
+std::shared_ptr<Buffer> Node::Receive()
 {
     XASSERT_RETURN(!channel_, nullptr, "Channel not initialized");
-    XASSERT_RETURN(node_type_ != NodeType::Receiver, nullptr, "Cannot receive data from a Sender node");
+    XASSERT_RETURN(node_type_ != NodeType::kReceiver, nullptr, "Cannot Receive data from a kSender Node");
 
-    return channel_->receive();
+    return channel_->Receive();
 }
 
-bool node::remove()
+bool Node::Remove()
 {
     if (channel_) {
-        bool result = channel_->remove();
+        bool result = channel_->Remove();
         channel_.reset(); // Reset the shared pointer to release the channel
         return result;
     }

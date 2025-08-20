@@ -13,14 +13,14 @@ using namespace ipc;
 
 namespace pipe {
 
-class named_pipe : public Channel {
+class NamedPipe : public Channel {
 public:
-    named_pipe(const std::string& name, NodeType ntype);
-    ~named_pipe();
+    NamedPipe(const std::string& name, NodeType ntype);
+    ~NamedPipe();
 
-    bool send(const void* data, size_t data_size);
-    std::shared_ptr<void> receive();
-    bool remove();
+    bool Send(const void* data, size_t data_size);
+    std::shared_ptr<Buffer> Receive();
+    bool Remove();
 
 private:
     std::string pipe_name_;
@@ -30,19 +30,19 @@ private:
     bool send_connected_;
 
     std::thread recv_thread_; // The main thread of the server
-    HANDLE recv_stop_event_; // Event to notify the receive thread to stop
+    HANDLE recv_stop_event_; // Event to notify the Receive thread to stop
     std::atomic<bool> recv_stop_flag_; // Check whether the main thread has terminated
     std::vector<std::thread> recv_handle_threads_; // Threads to handle connections
 
-    std::queue<std::shared_ptr<void>> recv_queue_;  // Queue to store received data
-    std::condition_variable queue_cv_; // Wake up the receive() upon receiving data
+    std::queue<std::shared_ptr<Buffer>> recv_queue_;  // Queue to store received data
+    std::condition_variable queue_cv_; // Wake up the Receive() upon receiving data
     std::mutex queue_mutex_;
 
     static const DWORD BUFFER_SIZE = 4096; // Default buffer size for named pipe communication
 
-    bool connect();
-    void recv_main();
-    void recv_handle_connection(HANDLE pipe);
+    bool Connect();
+    void RecvLoop();
+    void RecvHandle(HANDLE pipe);
 };
 } // namespace pipe
 #endif // _WIN32
