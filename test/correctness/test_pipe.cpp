@@ -1,15 +1,13 @@
-#ifdef _WIN32
 #include <cstring>
 #include <gtest/gtest.h>
 #include <thread>
 #include <vector>
-#include <windows.h>
 
 #include "ipc/ipc.h"
 
 using namespace ipc;
 
-void test_basic()
+void pipe_basic()
 {
     const char* msg = "Hello, IPC!";
 
@@ -36,7 +34,7 @@ void test_basic()
     server_thread.join();
 }
 
-void test_loop()
+void pipe_loop()
 {
     const char* msg = "Hello, IPC";
 
@@ -65,7 +63,7 @@ void test_loop()
     server_thread.join();
 }
 
-void test_struct()
+void pipe_struct()
 {
     struct meta {
         int id;
@@ -80,10 +78,10 @@ void test_struct()
 
     message msg;
     msg.meta_info.id = 1;
-    strcpy_s(msg.meta_info.name, "Test Message");
+    strcpy(msg.meta_info.name, "Test Message");
     msg.meta_info.value = 42.0;
     msg.num = 1;
-    strcpy_s(msg.mtext, "Hello, IPC with struct!");
+    strcpy(msg.mtext, "Hello, IPC with struct!");
 
     std::thread server_thread([msg]() {
         ipc::Node server_node("struct", ipc::NodeType::kReceiver, ipc::ChannelType::kNamedPipe);
@@ -109,7 +107,7 @@ void test_struct()
     server_thread.join();
 }
 
-void test_class()
+void pipe_class()
 {
     class MyClass {
     public:
@@ -121,7 +119,7 @@ void test_class()
             : id(i)
             , value(v)
         {
-            strncpy_s(name, n, sizeof(name) - 1);
+            strncpy(name, n, sizeof(name) - 1);
         }
     };
 
@@ -149,7 +147,7 @@ void test_class()
     server_thread.join();
 }
 
-void test_subclass()
+void pipe_subclass()
 {
     class Base {
     public:
@@ -159,7 +157,7 @@ void test_subclass()
         Base(int i, const char* n)
             : id(i)
         {
-            strncpy_s(name, n, sizeof(name) - 1);
+            strncpy(name, n, sizeof(name) - 1);
         }
     };
 
@@ -198,7 +196,7 @@ void test_subclass()
     server_thread.join();
 }
 
-void test_multiterminal()
+void pipe_multiterminal()
 {
     const char* msg = "Hello, IPC";
 
@@ -243,29 +241,28 @@ void test_multiterminal()
     client_thread_3.join();
 }
 
-TEST(MSGQ, basic)
+TEST(PIPE, basic)
 {
-    test_basic();
+    pipe_basic();
 }
 
-TEST(MSGQ, loop)
+TEST(PIPE, loop)
 {
-    test_loop();
+    pipe_loop();
 }
 
-TEST(MSGQ, struct)
+TEST(PIPE, struct)
 {
-    test_struct();
+    pipe_struct();
 }
 
-TEST(MSGQ, class)
+TEST(PIPE, class)
 {
-    test_class();
-    test_subclass();
+    pipe_class();
+    pipe_subclass();
 }
 
-TEST(MSGQ, multiterminal)
+TEST(PIPE, multiterminal)
 {
-    test_multiterminal();
+    pipe_multiterminal();
 }
-#endif

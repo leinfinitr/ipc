@@ -10,6 +10,10 @@ target_include_directories(ipc PUBLIC
     ${LIBIPC_TOOLS_DIR}
 )
 
+target_link_libraries(ipc PUBLIC
+    Boost::interprocess
+)
+
 # Enabling PIC allows it to be directly used when linked to dynamic libraries
 set_property(TARGET ipc PROPERTY POSITION_INDEPENDENT_CODE ON)
 

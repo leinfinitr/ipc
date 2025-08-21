@@ -31,6 +31,7 @@ public:
     ~Buffer() { free(data_); }
 
     size_t Size() { return data_size_; }
+    void SetSize(size_t size) { data_size_ = size; }
     void* Data() { return data_; }
 };
 
@@ -64,8 +65,8 @@ public:
     bool Remove();
 
 private:
-    const std::string name_; // Name of the IPC Node
-    const NodeType node_type_; // Type of the Node (kSender or kReceiver)
+    const std::string name_;           // Name of the IPC Node
+    const NodeType node_type_;         // Type of the Node (kSender or kReceiver)
     std::shared_ptr<Channel> channel_; // Pointer to the underlying IPC channel
 };
 

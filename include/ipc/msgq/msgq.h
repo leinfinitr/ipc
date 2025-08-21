@@ -1,13 +1,42 @@
 #pragma once
 
-#ifndef _WIN32
 #include <cstddef>
 #include <cstdint>
-#include <sys/msg.h>
 
 #include "ipc/ipc.h"
 
 using namespace ipc;
+
+#ifdef _WIN32
+
+#include "boost/interprocess/ipc/message_queue.hpp"
+
+namespace msgq {
+
+class MessageQueue : public Channel {
+public:
+    MessageQueue(std::string name, NodeType ntype);
+    ~MessageQueue();
+
+    bool Send(const void* data, size_t data_size = 0) override;
+    std::shared_ptr<Buffer> Receive() override;
+    bool Remove() override;
+
+private:
+    const std::string msgq_name_;
+    const NodeType node_type_;
+
+    const int max_msg_size_ = 1024; // Default max message size
+    const int max_msg_count_ = 100; // Default max message count
+
+    std::unique_ptr<boost::interprocess::message_queue> message_queue_;
+};
+
+} // namespace msgq
+
+#else
+
+#include <sys/msg.h>
 
 namespace msgq {
 
@@ -35,5 +64,7 @@ private:
         char data[];
     };
 };
+
 } // namespace msgq
+
 #endif // _WIN32
