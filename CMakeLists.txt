@@ -24,6 +24,7 @@ if(MSVC)
 endif()
 
 add_subdirectory(src)
+add_subdirectory(3rdparty/boost)
 
 if (BUILD_TEST)
     set(GOOGLETEST_VERSION 1.17.0)
