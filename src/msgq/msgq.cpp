@@ -23,17 +23,25 @@ MessageQueue::MessageQueue(std::string name, NodeType ntype)
     switch (ntype) {
     case NodeType::kReceiver:
         message_queue::remove(msgq_name_.c_str());
-        message_queue_ = std::make_unique<message_queue>(
-            create_only,
-            msgq_name_.c_str(),
-            max_msg_count_, // Max number of messages
-            max_msg_size_   // Max message size
-        );
+        try {
+            message_queue_ = std::make_unique<message_queue>(
+                create_only,
+                msgq_name_.c_str(),
+                max_msg_count_, // Max number of messages
+                max_msg_size_   // Max message size
+            );
+        } catch (const interprocess_exception& e) {
+            XASSERT_EXIT(true, "Receiver %s create failed: %s", msgq_name_.c_str(), e.what());
+        }
         break;
     case NodeType::kSender:
-        message_queue_ = std::make_unique<message_queue>(
-            open_only,
-            msgq_name_.c_str());
+        try {
+            message_queue_ = std::make_unique<message_queue>(
+                open_only,
+                msgq_name_.c_str());
+        } catch (const interprocess_exception& e) {
+            XASSERT_EXIT(true, "Sender %s create failed: %s", msgq_name_.c_str(), e.what());
+        }
         break;
     default:
         XASSERT_EXIT(true, "Unknown NodeType %d for node %s", static_cast<int>(ntype), msgq_name_.c_str());
@@ -84,7 +92,7 @@ std::shared_ptr<Buffer> MessageQueue::Receive()
 bool MessageQueue::Remove()
 {
     try {
-        if (node_type_ == NodeType::kReceiver) 
+        if (node_type_ == NodeType::kReceiver)
             return message_queue::remove(msgq_name_.c_str());
         else
             return true;

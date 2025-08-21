@@ -201,26 +201,23 @@ void msgq_multiterminal()
     const char* msg = "Hello, IPC";
 
     std::thread client_thread_1([msg]() {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         ipc::Node client_node_1("multiterminal", ipc::NodeType::kSender, ipc::ChannelType::kMessageQueue);
         std::string full_msg = std::string(msg) + " - Message #1";
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         EXPECT_TRUE(client_node_1.Send(full_msg.c_str(), full_msg.size() + 1));
     });
 
     std::thread client_thread_2([msg]() {
+        std::this_thread::sleep_for(std::chrono::milliseconds(150));
         ipc::Node client_node_2("multiterminal", ipc::NodeType::kSender, ipc::ChannelType::kMessageQueue);
         std::string full_msg = std::string(msg) + " - Message #2";
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(150));
         EXPECT_TRUE(client_node_2.Send(full_msg.c_str(), full_msg.size() + 1));
     });
 
     std::thread client_thread_3([msg]() {
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
         ipc::Node client_node_3("multiterminal", ipc::NodeType::kSender, ipc::ChannelType::kMessageQueue);
         std::string full_msg = std::string(msg) + " - Message #3";
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
         EXPECT_TRUE(client_node_3.Send(full_msg.c_str(), full_msg.size() + 1));
     });
 
