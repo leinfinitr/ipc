@@ -2,7 +2,7 @@
 
 ## [English](../README.md) | 简体中文
 
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue)](https://github.com/XpuOS/xsched/blob/main/LICENSE)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue)](https://github.com/leinfinitr/ipc/blob/main/LICENSE)
 
 ## 通信方式可选的 IPC 通信库
 
@@ -15,7 +15,13 @@
 
 ### 编译与测试
 
-确保安装了 Makefile 和 CMake 等相关的编译工具，而后通过 `make` 命令编译。编译完成后将在 `output` 目录下生成 `libipc.a`(Linux) 或者 `ipc.lib`(Windows) 静态库文件。
+1. 克隆仓库：`git clone https://github.com/leinfinitr/ipc.git`
+2. 进入项目目录：`cd ipc`
+3. 获取子模块：`git submodule update --init --recursive`
+4. 编译：`make`
+5. 编译完成后将在 `output` 目录下生成
+   1. `ipc-test-xxx` 可执行测试文件
+   2. `libipc.a`(Linux) 或者 `ipc.lib`(Windows) 静态库文件。
 
 - 单元测试：`/output/bin/ipc-test-correctness`
 - 性能测试：在不同终端依次运行 `/output/bin/ipc-test-performance-server` 和 `/output/bin/ipc-test-performance-client`
@@ -37,13 +43,13 @@
 </tr>
 <tr>
 <td align="center">命名管道</td>
-<td align="center">✅</td>
+<td align="center">(Windows NamedPipe) ✅</td>
 <td align="center">🔘</td>
 </tr>
 <tr>
 <td align="center">消息队列</td>
-<td align="center">🔘</td>
-<td align="center">✅</td>
+<td align="center">(Boost Interprocess) ✅</td>
+<td align="center">(System V IPC) ✅</td>
 </tr>
 <tr>
 <td align="center">共享内存</td>
@@ -85,13 +91,13 @@ target_include_directories(your_target PRIVATE ${IPC_INCLUDE_DIR})
 ```cpp
 #include <ipc/ipc.h>
 
-// 创建两个名为 "Wow" 的 IPC 节点，底层使用命名管道（Windows 默认值）或者消息队列（Linux 默认值）
-// ipc::node receiver("Wow", ipc::NodeType::Receiver, ipc::ChannelType::NamedPipe);
-// ipc::node receiver("Wow", ipc::NodeType::Receiver, ipc::ChannelType::MessageQueue);
-ipc::node receiver("Wow", ipc::NodeType::Receiver);
-ipc::node sender("Wow", ipc::NodeType::Sender);
-auto rec = receiver.receive();    // 接收消息（会阻塞进程直至接收到消息）
-sender.send(data, sizeof(data));  // 发送消息
+// 创建两个名为 "Wow" 的 IPC 节点，底层使用命名管道或者消息队列（默认值）
+// ipc::node receiver("Wow", ipc::NodeType::kReceiver, ipc::ChannelType::NamedPipe);
+// ipc::node receiver("Wow", ipc::NodeType::kReceiver, ipc::ChannelType::MessageQueue);
+ipc::node receiver("Wow", ipc::NodeType::kReceiver);
+ipc::node sender("Wow", ipc::NodeType::kSender);
+auto rec = receiver.Receive();    // 接收消息（会阻塞进程直至接收到消息）
+sender.Send(data, sizeof(data));  // 发送消息
 ```
 
 ### 示例（Linux）
@@ -114,57 +120,52 @@ Received message: Hello, IPC!
 
 ### 性能
 
-- **Windows**: 13th Gen Intel (R) Core (TM) i7-13700 (2.10 GHz)
+- **Windows**: Intel (R) Core (TM) Ultra 5 225
 - **Linux**: Intel (R) Core (TM) Ultra 9 185H
 
 <table>
 <tr>
 <th rowspan="2" align="center" class="vertical-center">通信延迟 / µs</th>
-<th colspan="3" align="center">Windows(Named pipe)</th>
-<th colspan="2" align="center">Linux(Message queue)</th>
+<th colspan="3" align="center">Windows</th>
+<th colspan="2" align="center">Linux</th>
 </tr>
 <tr>
-<th align="center">ipc(1-1)</th>
-<th align="center">ipc(1-N)</th>
+<th align="center">Message queue</th>
+<th align="center">Named pipe</th>
 <th align="center"><a href="https://github.com/mutouyun/cpp-ipc">cpp-ipc</a></th>
-<th align="center">ipc</th>
+<th align="center">Message queue</th>
 <th align="center"><a href="https://github.com/mutouyun/cpp-ipc">cpp-ipc</a></th>
 </tr>
 <tr>
 <td align="center">Average</td>
-<td align="center">153.4</td>
-<td align="center">239.1</td>
-<td align="center">198.3</td>
+<td align="center">0.952</td>
+<td align="center">21.9</td>
+<td align="center">253.7</td>
 <td align="center">61.5</td>
 <td align="center">47.0</td>
 </tr>
 <tr>
 <td align="center">Median</td>
-<td align="center">137.7</td>
-<td align="center">229.9</td>
-<td align="center">179.5</td>
+<td align="center">0.900</td>
+<td align="center">19.7</td>
+<td align="center">220.3</td>
 <td align="center">54.0</td>
 <td align="center">45.9</td>
 </tr>
 <tr>
 <td align="center">P95</td>
-<td align="center">290.9</td>
-<td align="center">416.7</td>
-<td align="center">356.0</td>
+<td align="center">1.10</td>
+<td align="center">28.5</td>
+<td align="center">488.4</td>
 <td align="center">89.1</td>
 <td align="center">60.1</td>
 </tr>
 <tr>
 <td align="center">P99</td>
-<td align="center">366.9</td>
-<td align="center">523.4</td>
-<td align="center">450.7</td>
+<td align="center">1.20</td>
+<td align="center">56.5</td>
+<td align="center">588.9</td>
 <td align="center">119.5</td>
 <td align="center">79.1</td>
 </tr>
 </table>
-
-由于 Windows NamedPipe 不支持多个客户端同时连接一个服务端实例：
-
-- **ipc(1-1)**：使用默认一对一连接
-- **ipc(1-N)**：采用服务端多实例与异步I/O的方式，允许单一 Receiver 同时连接多个 Sender
