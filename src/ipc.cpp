@@ -28,7 +28,7 @@ Node::Node(std::string name, NodeType ntype, ChannelType ctype)
         channel_ = std::make_shared<pipe::NamedPipe>(name, ntype);
         break;
     default:
-        channel_ = std::make_shared<pipe::NamedPipe>(name, ntype);
+        channel_ = std::make_shared<msgq::MessageQueue>(name, ntype);
     }
 #else
     std::hash<std::string> hasher;

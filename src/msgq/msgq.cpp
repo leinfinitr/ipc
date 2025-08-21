@@ -35,13 +35,8 @@ MessageQueue::MessageQueue(std::string name, NodeType ntype)
         }
         break;
     case NodeType::kSender:
-        try {
-            message_queue_ = std::make_unique<message_queue>(
-                open_only,
-                msgq_name_.c_str());
-        } catch (const interprocess_exception& e) {
-            XASSERT_EXIT(true, "Sender %s create failed: %s", msgq_name_.c_str(), e.what());
-        }
+        // Move connection establishment to Send method
+        // Prevent errors caused by not creating a receiver during initialization
         break;
     default:
         XASSERT_EXIT(true, "Unknown NodeType %d for node %s", static_cast<int>(ntype), msgq_name_.c_str());
@@ -56,6 +51,15 @@ MessageQueue::~MessageQueue()
 
 bool MessageQueue::Send(const void* data, size_t data_size)
 {
+    if (!message_queue_)
+        try {
+            message_queue_ = std::make_unique<message_queue>(
+                open_only,
+                msgq_name_.c_str());
+        } catch (const interprocess_exception& e) {
+            XASSERT_EXIT(true, "Sender %s create failed: %s", msgq_name_.c_str(), e.what());
+        }
+
     XASSERT_RETURN(node_type_ == NodeType::kReceiver, false, "kReceiver can't send data");
     XASSERT_RETURN(!data, false, "Data is null");
     XASSERT_RETURN(!message_queue_, false, "Message queue is not initialized");
