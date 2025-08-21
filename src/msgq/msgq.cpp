@@ -1,16 +1,106 @@
-#ifndef _WIN32
 #include <iostream>
 #include <memory>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/ipc.h>
-#include <sys/types.h>
-#include <unistd.h>
 
 #include "ipc/msgq/msgq.h"
 #include "utils/assert.h"
 #include "utils/log.h"
+
+#ifdef _WIN32
+
+#include "boost/interprocess/ipc/message_queue.hpp"
+
+using namespace boost::interprocess;
+
+namespace msgq {
+
+MessageQueue::MessageQueue(std::string name, NodeType ntype)
+    : msgq_name_(name)
+    , node_type_(ntype)
+{
+    switch (ntype) {
+    case NodeType::kReceiver:
+        message_queue::remove(msgq_name_.c_str());
+        message_queue_ = std::make_unique<message_queue>(
+            create_only,
+            msgq_name_.c_str(),
+            max_msg_count_, // Max number of messages
+            max_msg_size_   // Max message size
+        );
+        break;
+    case NodeType::kSender:
+        message_queue_ = std::make_unique<message_queue>(
+            open_only,
+            msgq_name_.c_str());
+        break;
+    default:
+        XASSERT_EXIT(true, "Unknown NodeType %d for node %s", static_cast<int>(ntype), msgq_name_.c_str());
+        break;
+    }
+}
+
+MessageQueue::~MessageQueue()
+{
+    MessageQueue::Remove();
+}
+
+bool MessageQueue::Send(const void* data, size_t data_size)
+{
+    XASSERT_RETURN(node_type_ == NodeType::kReceiver, false, "kReceiver can't send data");
+    XASSERT_RETURN(!data, false, "Data is null");
+    XASSERT_RETURN(!message_queue_, false, "Message queue is not initialized");
+
+    try {
+        message_queue_->send(data, data_size, 0);
+        return true;
+    } catch (const interprocess_exception& e) {
+        XINFO("Sender %s Send failed: %s", msgq_name_.c_str(), e.what());
+        return false;
+    }
+}
+
+std::shared_ptr<Buffer> MessageQueue::Receive()
+{
+    XASSERT_RETURN(!message_queue_, nullptr, "Message queue is not initialized");
+
+    try {
+        size_t received_size;
+        unsigned int priority;
+        auto buffer = std::make_shared<Buffer>(malloc(max_msg_size_), max_msg_size_);
+
+        message_queue_->receive(buffer->Data(), buffer->Size(), received_size, priority);
+        buffer->SetSize(received_size);
+
+        return buffer;
+
+    } catch (const interprocess_exception& e) {
+        XINFO("Receiver %s Receive failed: %s", msgq_name_.c_str(), e.what());
+        return nullptr;
+    }
+}
+
+bool MessageQueue::Remove()
+{
+    try {
+        if (node_type_ == NodeType::kReceiver) 
+            return message_queue::remove(msgq_name_.c_str());
+        else
+            return true;
+    } catch (const interprocess_exception& e) {
+        XINFO("Receiver %s Remove failed: %s", msgq_name_.c_str(), e.what())
+        return false;
+    }
+}
+
+} // namespace msgq
+
+#else
+
+#include <sys/ipc.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 namespace msgq {
 
@@ -137,4 +227,5 @@ bool MessageQueue::Remove()
 }
 
 } // namespace msgq
+
 #endif // _WIN32
