@@ -1,3 +1,6 @@
 [submodule "3rdparty/gtest"]
 	path = 3rdparty/gtest
 	url = git@ipads.se.sjtu.edu.cn:xpu-os/utils/googletest.git
+[submodule "3rdparty/boost-ipc"]
+	path = 3rdparty/boost-ipc
+	url = git@ipads.se.sjtu.edu.cn:xpu-os/utils/boost-ipc.git
