@@ -10,7 +10,7 @@ int main()
     ipc::Node sender("example", ipc::NodeType::kSender);
 
     // Send the data
-    if (!sender.send(data.c_str(), data.size() + 1)) {
+    if (!sender.Send(data.c_str(), data.size() + 1)) {
         fprintf(stderr, "Failed to send message\n");
         return 1;
     }

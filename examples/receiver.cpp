@@ -11,7 +11,7 @@ int main()
         fprintf(stderr, "Failed to Receive message\n");
         return 1;
     }
-    const char* data = static_cast<const char*>(rec.get());
+    const char* data = static_cast<const char*>(rec.get()->Data());
     // Print the received data
     printf("Received message: %s\n", data);
     return 0;
