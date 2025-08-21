@@ -18,6 +18,12 @@
         (void)(expr); \
     } while (0)
 
+#if defined(_WIN32)
+#define OS_STR "Windows"
+#elif defined(__linux__)
+#define OS_STR "Linux"
+#endif
+
 #define FMT_32D "%" PRId32
 #define FMT_32U "%" PRIu32
 #define FMT_32X "%" PRIx32

@@ -78,10 +78,10 @@ void pipe_struct()
 
     message msg;
     msg.meta_info.id = 1;
-    strcpy_s(msg.meta_info.name, "Test Message");
+    strcpy(msg.meta_info.name, "Test Message");
     msg.meta_info.value = 42.0;
     msg.num = 1;
-    strcpy_s(msg.mtext, "Hello, IPC with struct!");
+    strcpy(msg.mtext, "Hello, IPC with struct!");
 
     std::thread server_thread([msg]() {
         ipc::Node server_node("struct", ipc::NodeType::kReceiver, ipc::ChannelType::kNamedPipe);
@@ -119,7 +119,7 @@ void pipe_class()
             : id(i)
             , value(v)
         {
-            strncpy_s(name, n, sizeof(name) - 1);
+            strncpy(name, n, sizeof(name) - 1);
         }
     };
 
@@ -157,7 +157,7 @@ void pipe_subclass()
         Base(int i, const char* n)
             : id(i)
         {
-            strncpy_s(name, n, sizeof(name) - 1);
+            strncpy(name, n, sizeof(name) - 1);
         }
     };
 

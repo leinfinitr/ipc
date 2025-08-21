@@ -41,8 +41,7 @@ Node::Node(std::string name, NodeType ntype, ChannelType ctype)
         channel_ = std::make_shared<msgq::MessageQueue>(name, ntype, key);
         break;
     case ChannelType::kNamedPipe:
-        XERRO_UNSUPPORTED();
-        exit(EXIT_FAILURE);
+        XASSERT_EXIT(true, "Named pipe channel is not supported on Linux.");
     default:
         channel_ = std::make_shared<msgq::MessageQueue>(name, ntype, key);
     }
