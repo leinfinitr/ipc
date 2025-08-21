@@ -49,14 +49,14 @@ inline const char* get_errno_str()
 #define XASSERT(expr, format, ...)                                                 \
     do {                                                                           \
         if (static_cast<bool>(expr)) {                                             \
-            XINFO(format ": (%d)%s", ##__VA_ARGS__, get_errno(), get_errno_str()); \
+            XERRO(format ": (%d)%s", ##__VA_ARGS__, get_errno(), get_errno_str()); \
         }                                                                          \
     } while (0)
 
 #define XASSERT_RETURN(expr, ret, format, ...)                                     \
     do {                                                                           \
         if (static_cast<bool>(expr)) {                                             \
-            XINFO(format ": (%d)%s", ##__VA_ARGS__, get_errno(), get_errno_str()); \
+            XERRO(format ": (%d)%s", ##__VA_ARGS__, get_errno(), get_errno_str()); \
             return ret;                                                            \
         }                                                                          \
     } while (0)
@@ -64,7 +64,7 @@ inline const char* get_errno_str()
 #define XASSERT_EXIT(expr, format, ...)                                            \
     do {                                                                           \
         if (static_cast<bool>(expr)) {                                             \
-            XINFO(format ": (%d)%s", ##__VA_ARGS__, get_errno(), get_errno_str()); \
+            XERRO(format ": (%d)%s", ##__VA_ARGS__, get_errno(), get_errno_str()); \
             exit(EXIT_FAILURE);                                                    \
         }                                                                          \
     } while (0)
