@@ -22,7 +22,8 @@ Node::Node(std::string name, NodeType ntype, ChannelType ctype)
 #ifdef _WIN32
     switch (ctype) {
     case ChannelType::kMessageQueue:
-        XASSERT_EXIT(true, "Message queue channel not implemented yet.");
+        channel_ = std::make_shared<msgq::MessageQueue>(name, ntype);
+        break;
     case ChannelType::kNamedPipe:
         channel_ = std::make_shared<pipe::NamedPipe>(name, ntype);
         break;
@@ -40,7 +41,8 @@ Node::Node(std::string name, NodeType ntype, ChannelType ctype)
         channel_ = std::make_shared<msgq::MessageQueue>(name, ntype, key);
         break;
     case ChannelType::kNamedPipe:
-        XASSERT_EXIT(true, "Named pipe channel not implemented yet.");
+        XERRO_UNSUPPORTED();
+        exit(EXIT_FAILURE);
     default:
         channel_ = std::make_shared<msgq::MessageQueue>(name, ntype, key);
     }
